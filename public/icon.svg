@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1e1712"/>
+  <rect x="26" y="26" width="460" height="460" fill="none" stroke="#9e7e5a" stroke-width="3" opacity="0.5"/>
+  <!-- simple handbag mark -->
+  <g fill="none" stroke="#d4bfa4" stroke-width="14" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M156 214 h200 l-18 150 a20 20 0 0 1 -20 18 H194 a20 20 0 0 1 -20 -18 Z"/>
+    <path d="M206 214 v-26 a50 50 0 0 1 100 0 v26"/>
+  </g>
+  <text x="256" y="470" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="46" fill="#d4bfa4" letter-spacing="6">SIOPAELLA</text>
+</svg>

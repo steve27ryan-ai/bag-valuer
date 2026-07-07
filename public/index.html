@@ -1,0 +1,788 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Siopaella · Bag Valuer</title>
+<meta name="theme-color" content="#1e1712" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Bag Valuer" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/icon-180.png" />
+<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<link
+  href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    --white: #ffffff;
+    --ivory: #faf8f5;
+    --pearl: #f3efe9;
+    --sand: #e8e0d5;
+    --bronze: #9e7e5a;
+    --bronze-deep: #7a5f3f;
+    --bronze-pale: #d4bfa4;
+    --espresso: #1e1712;
+    --ink: #2e2620;
+    --stone: #6b5f55;
+    --border: rgba(158, 126, 90, 0.18);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Jost", sans-serif;
+    font-weight: 300;
+    color: var(--espresso);
+    background: var(--ivory);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 56px 24px 96px;
+    padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+
+  /* Passcode lock screen */
+  .lock { position: fixed; inset: 0; background: var(--espresso); z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px;
+    padding-top: max(32px, env(safe-area-inset-top)); }
+  .lock.hide { display: none; }
+  .lock .brandmark { font-family: "Cormorant Garamond", serif; font-weight: 300; font-size: 2.4rem; color: var(--white); }
+  .lock .brandmark em { font-style: italic; color: var(--bronze-pale); }
+  .lock .lsub { color: rgba(255,255,255,0.5); font-size: 0.62rem; letter-spacing: 0.34em; text-transform: uppercase; margin: 14px 0 40px; }
+  .lock input {
+    width: 100%; max-width: 300px; text-align: center; background: transparent; border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.3); color: var(--white); font-family: "Jost", sans-serif;
+    font-size: 1.4rem; letter-spacing: 0.3em; padding: 12px 0; margin-bottom: 28px;
+  }
+  .lock input:focus { outline: none; border-bottom-color: var(--bronze-pale); }
+  .lock input::placeholder { color: rgba(255,255,255,0.25); letter-spacing: 0.2em; font-size: 1rem; }
+  .lock button {
+    background: var(--pearl); color: var(--espresso); border: none; padding: 1rem 3rem; cursor: pointer;
+    font-family: "Jost", sans-serif; font-size: 0.68rem; letter-spacing: 0.22em; text-transform: uppercase;
+    transition: background 0.3s;
+  }
+  .lock button:hover:not(:disabled) { background: var(--bronze-pale); }
+  .lock button:disabled { opacity: 0.5; }
+  .lock .lerr { color: #e6a5a5; font-size: 0.8rem; margin-top: 20px; min-height: 1.2em; }
+
+  header { text-align: center; margin-bottom: 48px; }
+  .eyebrow {
+    font-size: 0.62rem; letter-spacing: 0.38em; text-transform: uppercase;
+    color: var(--bronze); margin-bottom: 18px;
+  }
+  h1 {
+    font-family: "Cormorant Garamond", serif; font-weight: 300;
+    font-size: clamp(2.4rem, 5vw, 3.6rem); line-height: 1.05; letter-spacing: 0.01em;
+  }
+  h1 em { font-style: italic; color: var(--bronze); }
+  .sub { color: var(--stone); font-size: 0.9rem; margin-top: 14px; max-width: 480px; margin-left: auto; margin-right: auto; }
+
+  /* Upload card */
+  .card { background: var(--white); border: 1px solid var(--border); }
+  .drop {
+    position: relative; padding: 54px 32px; text-align: center; cursor: pointer;
+    transition: background 0.25s;
+  }
+  .drop:hover, .drop.drag { background: var(--pearl); }
+  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop-icon { font-size: 2.2rem; margin-bottom: 12px; opacity: 0.5; }
+  .drop-title { font-family: "Cormorant Garamond", serif; font-size: 1.4rem; font-weight: 400; }
+  .drop-hint { font-size: 0.78rem; color: var(--stone); margin-top: 6px; }
+
+  .preview-wrap { display: none; padding: 24px 32px; border-top: 1px solid var(--border); }
+  .preview-wrap.show { display: block; }
+  .thumbs { display: flex; flex-wrap: wrap; gap: 12px; }
+  .thumb { position: relative; width: 92px; height: 92px; }
+  .thumb img { width: 92px; height: 92px; object-fit: cover; background: var(--sand); display: block; }
+  .thumb .rm {
+    position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--espresso); color: var(--white); border: none; cursor: pointer; font-size: 0.9rem;
+    line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .thumb .rm:hover { background: var(--bronze); }
+  .thumb-add {
+    width: 92px; height: 92px; border: 1px dashed var(--bronze); background: var(--ivory); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    color: var(--bronze-deep); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .thumb-add:hover { background: var(--pearl); }
+  .thumb-add span { font-size: 1.4rem; line-height: 1; }
+  .angle-hint { font-size: 0.76rem; color: var(--stone); margin-top: 14px; }
+  .note-field { margin-top: 20px; }
+  .note-field label { display: block; font-size: 0.57rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--bronze); margin-bottom: 8px; }
+  .note-field input {
+    width: 100%; border: 1px solid var(--border); background: var(--ivory); padding: 10px 12px;
+    font-family: "Jost", sans-serif; font-size: 0.85rem; color: var(--espresso);
+  }
+  .note-field input:focus { outline: none; border-color: var(--bronze); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.9rem; border: none;
+    font-family: "Jost", sans-serif; font-size: 0.68rem; letter-spacing: 0.22em; text-transform: uppercase;
+    padding: 1rem 2.4rem; cursor: pointer; background: var(--espresso); color: var(--pearl);
+    transition: background 0.35s; width: 100%; margin-top: 2px;
+  }
+  .btn:hover:not(:disabled) { background: var(--bronze); }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* Status */
+  .status { display: none; text-align: center; padding: 40px; color: var(--stone); font-size: 0.9rem; }
+  .status.show { display: block; }
+  .spinner {
+    width: 34px; height: 34px; border: 2px solid var(--sand); border-top-color: var(--bronze);
+    border-radius: 50%; margin: 0 auto 18px; animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status .step { font-style: italic; font-family: "Cormorant Garamond", serif; font-size: 1.15rem; color: var(--espresso); }
+
+  .error { display: none; margin-top: 24px; padding: 18px 22px; background: #fbeeee; border: 1px solid #e6c4c4; color: #8a3b3b; font-size: 0.85rem; }
+  .error.show { display: block; }
+
+  /* Results */
+  .results { display: none; margin-top: 40px; }
+  .results.show { display: block; }
+
+  .headline { background: var(--espresso); color: var(--white); padding: 40px 40px 34px; }
+  .headline .brand { font-size: 0.62rem; letter-spacing: 0.34em; text-transform: uppercase; color: var(--bronze-pale); }
+  .headline .model { font-family: "Cormorant Garamond", serif; font-weight: 300; font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.1; margin-top: 8px; }
+  .headline .meta { margin-top: 16px; font-size: 0.82rem; color: rgba(255,255,255,0.6); display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .conf { display: inline-block; margin-top: 16px; font-size: 0.57rem; letter-spacing: 0.24em; text-transform: uppercase; padding: 5px 12px; border: 1px solid rgba(255,255,255,0.25); color: var(--bronze-pale); }
+
+  .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--border); }
+  .price-cell { background: var(--white); padding: 30px 34px; }
+  .price-cell .k { font-size: 0.57rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--bronze); margin-bottom: 10px; }
+  .price-cell .v { font-family: "Cormorant Garamond", serif; font-weight: 300; font-size: 2.4rem; color: var(--espresso); line-height: 1; }
+  .price-cell .vnote { font-size: 0.76rem; color: var(--stone); margin-top: 8px; }
+
+  .block { background: var(--white); border-top: 2px solid var(--border); padding: 28px 34px; }
+  .block h3 { font-size: 0.57rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--bronze); margin-bottom: 14px; font-weight: 400; }
+  .grade { font-family: "Cormorant Garamond", serif; font-size: 1.5rem; }
+  .block p { font-size: 0.86rem; color: var(--ink); }
+
+  table.cond { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  table.cond td { padding: 12px 4px; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
+  table.cond td:first-child { color: var(--stone); }
+  table.cond td:last-child { text-align: right; font-family: "Cormorant Garamond", serif; font-size: 1.1rem; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    padding: 12px 20px; cursor: pointer; font-family: "Jost", sans-serif; font-size: 0.62rem;
+    letter-spacing: 0.24em; text-transform: uppercase; color: var(--stone); transition: color 0.25s, border-color 0.25s; }
+  .tab.active { color: var(--espresso); border-bottom-color: var(--bronze); }
+  .tab:hover { color: var(--espresso); }
+
+  /* History list */
+  .hist-status { text-align: center; color: var(--stone); font-size: 0.85rem; padding: 40px; }
+  .hist-list { display: flex; flex-direction: column; gap: 2px; }
+  .hist-card { display: flex; gap: 18px; background: var(--white); border: 1px solid var(--border);
+    padding: 16px 18px; cursor: pointer; align-items: center; transition: background 0.2s; }
+  .hist-card:hover { background: var(--pearl); }
+  .hist-thumb { width: 66px; height: 66px; object-fit: cover; background: var(--sand); flex-shrink: 0; }
+  .hist-thumb.ph { display: flex; align-items: center; justify-content: center; color: var(--bronze-pale); font-size: 1.6rem; }
+  .hist-main { flex: 1; min-width: 0; }
+  .hist-brand { font-size: 0.55rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--bronze); }
+  .hist-model { font-family: "Cormorant Garamond", serif; font-size: 1.25rem; line-height: 1.15; color: var(--espresso);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist-meta { font-size: 0.72rem; color: var(--stone); margin-top: 3px; }
+  .hist-right { text-align: right; flex-shrink: 0; }
+  .hist-price { font-family: "Cormorant Garamond", serif; font-size: 1.25rem; color: var(--espresso); }
+  .hist-plabel { font-size: 0.52rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bronze); }
+  .hist-auth { font-size: 0.62rem; margin-top: 4px; }
+  .hist-auth.likely { color: #2f6b3d; } .hist-auth.some { color: #8a6d1f; }
+  .hist-auth.strong { color: #8a3b3b; } .hist-auth.cannot { color: var(--stone); }
+  .hist-back { background: none; border: 1px solid var(--bronze); color: var(--bronze-deep); padding: 0.6rem 1.4rem;
+    font-family: "Jost"; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer;
+    margin-bottom: 20px; transition: 0.25s; }
+  .hist-back:hover { background: var(--bronze); color: var(--white); }
+  .hist-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .hist-photos img { width: 110px; height: 110px; object-fit: cover; background: var(--sand); }
+
+  /* Authenticity */
+  .auth-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .auth-badge { font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 7px 14px; border-radius: 2px; font-weight: 400; }
+  .auth-likely { background: #e7f0e8; color: #2f6b3d; border: 1px solid #bcd8c1; }
+  .auth-some   { background: #fbf3e2; color: #8a6d1f; border: 1px solid #e8d59e; }
+  .auth-strong { background: #fbeeee; color: #8a3b3b; border: 1px solid #e6c4c4; }
+  .auth-cannot { background: var(--pearl); color: var(--stone); border: 1px solid var(--border); }
+  .auth-conf { font-size: 0.72rem; color: var(--stone); }
+  .checks { margin-top: 16px; }
+  .check { display: flex; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 0.84rem; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+  .dot.consistent { background: #4a9d5b; }
+  .dot.inconsistent { background: #c0504d; }
+  .dot.notvisible { background: #c9beb0; }
+  .check .feat { font-weight: 400; color: var(--espresso); }
+  .check .cnote { color: var(--stone); font-size: 0.8rem; }
+  .flags { margin-top: 16px; padding: 14px 18px; background: #fbeeee; border: 1px solid #e6c4c4; }
+  .flags .k { font-size: 0.57rem; letter-spacing: 0.24em; text-transform: uppercase; color: #8a3b3b; margin-bottom: 8px; }
+  .flags li { font-size: 0.83rem; color: #7a3535; margin-left: 18px; margin-bottom: 4px; }
+  .needed { margin-top: 14px; font-size: 0.82rem; color: var(--stone); }
+  .needed strong { color: var(--bronze-deep); font-weight: 400; }
+  .auth-caveat { margin-top: 14px; font-size: 0.74rem; color: var(--stone); font-style: italic; line-height: 1.6; }
+  .narrative { white-space: pre-wrap; font-size: 0.85rem; color: var(--ink); line-height: 1.75; }
+  details { margin-top: 2px; }
+  details summary { cursor: pointer; padding: 18px 34px; background: var(--pearl); font-size: 0.62rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--bronze-deep); list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details[open] summary { border-bottom: 1px solid var(--border); }
+
+  .sources { padding: 22px 34px; background: var(--pearl); }
+  .sources .k { font-size: 0.57rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--bronze); margin-bottom: 10px; }
+  .sources a { display: block; color: var(--bronze-deep); font-size: 0.78rem; word-break: break-all; margin-bottom: 5px; }
+
+  .disclaimer { margin-top: 28px; font-size: 0.72rem; color: var(--stone); text-align: center; line-height: 1.7; }
+  .saved-note { text-align: center; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: #2f6b3d; margin-top: 10px; }
+  .again { text-align: center; margin-top: 24px; }
+  .again button { background: none; border: 1px solid var(--bronze); color: var(--bronze-deep); padding: 0.8rem 2rem; font-family: "Jost"; font-size: 0.66rem; letter-spacing: 0.22em; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+  .again button:hover { background: var(--bronze); color: var(--white); }
+
+  @media (max-width: 640px) {
+    .price-grid { grid-template-columns: 1fr; }
+    .preview-row { flex-direction: column; align-items: stretch; }
+  }
+</style>
+
+<div class="lock" id="lock">
+  <div class="brandmark">Bag <em>Valuer</em></div>
+  <div class="lsub">Siopaella · Staff</div>
+  <input id="code" type="password" inputmode="numeric" autocomplete="off" placeholder="Passcode" />
+  <button id="unlock" type="button">Sign in</button>
+  <div class="lerr" id="lerr"></div>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Siopaella · Appraisal</div>
+    <h1>Bag <em>Valuer</em></h1>
+    <p class="sub">Upload a photo of a designer bag. Get its make, model, condition, retail price and an estimated resale range.</p>
+  </header>
+
+  <nav class="tabs" id="tabs" hidden>
+    <button class="tab active" id="tabValue" type="button">New valuation</button>
+    <button class="tab" id="tabHistory" type="button">History</button>
+  </nav>
+
+  <div id="valuationView">
+  <div class="card">
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept="image/*" multiple />
+      <div class="drop-icon">◈</div>
+      <div class="drop-title">Drop photos here, or click to choose</div>
+      <div class="drop-hint">Up to 6 · JPG or PNG · clear, well-lit shots work best</div>
+    </label>
+
+    <div class="preview-wrap" id="previewWrap">
+      <div class="thumbs" id="thumbs"></div>
+      <p class="angle-hint">Tip: add several angles of the <em>same</em> bag — front, hardware close-up, date/serial stamp, interior, base &amp; corners. More angles = a sharper ID and condition read.</p>
+      <div class="note-field">
+        <label>Anything you already know? (optional)</label>
+        <input id="note" placeholder="e.g. Chanel, medium, bought 2019 — or leave blank" />
+      </div>
+    </div>
+
+    <button class="btn" id="go" disabled>Value this bag</button>
+  </div>
+
+  <div class="status" id="status">
+    <div class="spinner"></div>
+    <div class="step" id="step">Looking at the photo…</div>
+    <div style="font-size:0.76rem;margin-top:8px;">This takes 15–40 seconds while it searches the market.</div>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <div class="results" id="results"></div>
+  </div><!-- /valuationView -->
+
+  <div id="historyView" hidden>
+    <div class="hist-status" id="histStatus">Loading…</div>
+    <div class="hist-list" id="histList"></div>
+    <div class="hist-detail" id="histDetail" hidden>
+      <button class="hist-back" id="histBack" type="button">← Back to history</button>
+      <div class="hist-photos" id="histPhotos"></div>
+      <div class="results show" id="histResults"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Passcode gate ─────────────────────────────────────────────
+  const lock = document.getElementById("lock");
+  const codeInput = document.getElementById("code");
+  const unlockBtn = document.getElementById("unlock");
+  const lerr = document.getElementById("lerr");
+  const CODE_KEY = "bagvaluer_code";
+  let accessCode = localStorage.getItem(CODE_KEY) || "";
+  let historyEnabled = false;
+
+  async function initGate() {
+    let session;
+    try {
+      session = await (await fetch("/api/session")).json();
+    } catch {
+      session = { codeRequired: false, historyEnabled: false };
+    }
+    historyEnabled = !!session.historyEnabled;
+    setupTabs();
+    if (!session.codeRequired) {
+      lock.classList.add("hide");
+    } else if (accessCode) {
+      // We already have a stored code — verify it silently.
+      const ok = await verify(accessCode);
+      if (ok) lock.classList.add("hide");
+      else { localStorage.removeItem(CODE_KEY); accessCode = ""; codeInput.focus(); }
+    } else {
+      codeInput.focus();
+    }
+  }
+
+  async function verify(code) {
+    try {
+      const r = await fetch("/api/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      return (await r.json()).ok;
+    } catch { return false; }
+  }
+
+  async function attemptUnlock() {
+    const code = codeInput.value.trim();
+    if (!code) return;
+    unlockBtn.disabled = true;
+    lerr.textContent = "";
+    const ok = await verify(code);
+    if (ok) {
+      accessCode = code;
+      localStorage.setItem(CODE_KEY, code);
+      lock.classList.add("hide");
+    } else {
+      lerr.textContent = "That passcode isn't right.";
+      codeInput.value = "";
+      codeInput.focus();
+    }
+    unlockBtn.disabled = false;
+  }
+  unlockBtn.addEventListener("click", attemptUnlock);
+  codeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") attemptUnlock(); });
+  initGate();
+  // ──────────────────────────────────────────────────────────────
+
+  const fileInput = document.getElementById("file");
+  const drop = document.getElementById("drop");
+  const previewWrap = document.getElementById("previewWrap");
+  const thumbs = document.getElementById("thumbs");
+  const note = document.getElementById("note");
+  const go = document.getElementById("go");
+  const statusEl = document.getElementById("status");
+  const stepEl = document.getElementById("step");
+  const errorEl = document.getElementById("error");
+  const results = document.getElementById("results");
+
+  const MAX = 6;
+  let chosen = []; // array of File
+
+  fileInput.addEventListener("change", (e) => { addFiles(e.target.files); fileInput.value = ""; });
+  ["dragover", "dragenter"].forEach((ev) =>
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("drag"); })
+  );
+  ["dragleave", "drop"].forEach((ev) =>
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("drag"); })
+  );
+  drop.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
+
+  function addFiles(fileList) {
+    for (const f of fileList) {
+      if (!f.type.startsWith("image/")) continue;
+      if (chosen.length >= MAX) break;
+      chosen.push(f);
+    }
+    renderThumbs();
+    results.classList.remove("show");
+    errorEl.classList.remove("show");
+  }
+
+  function removeAt(i) {
+    chosen.splice(i, 1);
+    renderThumbs();
+  }
+  window.removeAt = removeAt;
+
+  function renderThumbs() {
+    thumbs.innerHTML = "";
+    chosen.forEach((f, i) => {
+      const div = document.createElement("div");
+      div.className = "thumb";
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(f);
+      const btn = document.createElement("button");
+      btn.className = "rm";
+      btn.type = "button";
+      btn.textContent = "×";
+      btn.title = "Remove";
+      btn.onclick = () => removeAt(i);
+      div.appendChild(img);
+      div.appendChild(btn);
+      thumbs.appendChild(div);
+    });
+    // "Add more" tile
+    if (chosen.length && chosen.length < MAX) {
+      const add = document.createElement("label");
+      add.className = "thumb-add";
+      add.innerHTML = '<span>+</span>Add more';
+      const inp = document.createElement("input");
+      inp.type = "file";
+      inp.accept = "image/*";
+      inp.multiple = true;
+      inp.style.display = "none";
+      inp.onchange = (e) => { addFiles(e.target.files); };
+      add.appendChild(inp);
+      thumbs.appendChild(add);
+    }
+    previewWrap.classList.toggle("show", chosen.length > 0);
+    go.disabled = chosen.length === 0;
+    go.textContent = chosen.length > 1 ? "Value this bag (" + chosen.length + " photos)" : "Value this bag";
+  }
+
+  const steps = [
+    "Looking at the photo…",
+    "Identifying the brand and model…",
+    "Assessing condition…",
+    "Searching for the retail price…",
+    "Gathering resale comparisons…",
+    "Working out a fair estimate…",
+  ];
+  let stepTimer = null;
+  function cycleSteps() {
+    let i = 0;
+    stepEl.textContent = steps[0];
+    stepTimer = setInterval(() => {
+      i = Math.min(i + 1, steps.length - 1);
+      stepEl.textContent = steps[i];
+    }, 6000);
+  }
+
+  go.addEventListener("click", async () => {
+    if (!chosen.length) return;
+    go.disabled = true;
+    errorEl.classList.remove("show");
+    results.classList.remove("show");
+    statusEl.classList.add("show");
+    cycleSteps();
+
+    try {
+      const fd = new FormData();
+      chosen.forEach((f) => fd.append("photos", f));
+      fd.append("note", note.value || "");
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: accessCode ? { "x-access-code": accessCode } : {},
+        body: fd,
+      });
+      if (res.status === 401) {
+        // Passcode changed or expired — send them back to the lock screen.
+        localStorage.removeItem(CODE_KEY);
+        accessCode = "";
+        lock.classList.remove("hide");
+        codeInput.focus();
+        throw new Error("Please sign in again.");
+      }
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || "Request failed");
+      render(payload);
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.classList.add("show");
+    } finally {
+      clearInterval(stepTimer);
+      statusEl.classList.remove("show");
+      go.disabled = false;
+    }
+  });
+
+  function money(v, cur) {
+    if (v === null || v === undefined || v === "") return "—";
+    const sym = { GBP: "£", USD: "$", EUR: "€" }[cur] || "";
+    return sym + Number(v).toLocaleString();
+  }
+
+  function buildResults(payload, opts) {
+    opts = opts || {};
+    const d = payload.data;
+    if (!d) {
+      // Fallback: show raw narrative if JSON parse failed.
+      return '<div class="block"><h3>Result</h3><div class="narrative">' +
+        escapeHtml(payload.raw || payload.narrative || "No result.") +
+        "</div></div>";
+    }
+
+    const cur = (d.resale_estimate && d.resale_estimate.currency) || "EUR";
+    const metaBits = [d.colour, d.material, d.hardware ? d.hardware + " hardware" : "", d.variant_size]
+      .filter(Boolean)
+      .map((x) => "<span>" + escapeHtml(x) + "</span>")
+      .join("");
+
+    let condRows = "";
+    if (Array.isArray(d.resale_by_condition)) {
+      condRows = d.resale_by_condition
+        .filter((r) => r && r.grade)
+        .map(
+          (r) =>
+            "<tr><td>" + escapeHtml(r.grade) + "</td><td>" +
+            money(r.low, cur) + " – " + money(r.high, cur) + "</td></tr>"
+        )
+        .join("");
+    }
+
+    // Authenticity screening panel
+    let authHtml = "";
+    const a = d.authenticity;
+    if (a && (a.assessment || (a.checks && a.checks.length))) {
+      const cls = { "Likely authentic": "auth-likely", "Some concerns": "auth-some",
+        "Strong concerns": "auth-strong", "Cannot assess from these photos": "auth-cannot" }[a.assessment] || "auth-cannot";
+
+      const checkRows = (a.checks || [])
+        .filter((c) => c && c.feature)
+        .map((c) => {
+          const s = (c.status || "").toLowerCase();
+          const dot = s.includes("incons") ? "inconsistent" : s.includes("not") ? "notvisible" : "consistent";
+          return '<div class="check"><div class="dot ' + dot + '"></div><div><div class="feat">' +
+            escapeHtml(c.feature) + (c.status ? ' <span class="cnote">· ' + escapeHtml(c.status) + "</span>" : "") +
+            "</div>" + (c.note ? '<div class="cnote">' + escapeHtml(c.note) + "</div>" : "") + "</div></div>";
+        }).join("");
+
+      const flags = (a.red_flags || []).filter(Boolean);
+      const flagsHtml = flags.length
+        ? '<div class="flags"><div class="k">Red flags</div><ul>' +
+          flags.map((f) => "<li>" + escapeHtml(f) + "</li>").join("") + "</ul></div>"
+        : "";
+
+      const needed = (a.photos_needed || []).filter(Boolean);
+      const neededHtml = needed.length
+        ? '<div class="needed"><strong>To sharpen the screen, add:</strong> ' +
+          needed.map(escapeHtml).join(" · ") + "</div>"
+        : "";
+
+      authHtml =
+        '<div class="block"><h3>Authenticity screening</h3>' +
+        '<div class="auth-head"><span class="auth-badge ' + cls + '">' +
+          escapeHtml(a.assessment || "Cannot assess") + "</span>" +
+          (a.confidence ? '<span class="auth-conf">Confidence: ' + escapeHtml(a.confidence) + "</span>" : "") +
+        "</div>" +
+        (checkRows ? '<div class="checks">' + checkRows + "</div>" : "") +
+        flagsHtml + neededHtml +
+        '<div class="auth-caveat">This is an automated first-pass screen from photos only — not a certificate of authenticity. ' +
+        "Absence of red flags is not proof a bag is genuine; super-fakes can pass a photo review. Use professional authentication before any high-value sale.</div>" +
+        "</div>";
+    }
+
+    let sourcesHtml = "";
+    if (Array.isArray(d.sources) && d.sources.filter(Boolean).length) {
+      sourcesHtml =
+        '<div class="sources"><div class="k">Sources checked</div>' +
+        d.sources.filter(Boolean).map((s) => {
+          const safe = escapeHtml(s);
+          return /^https?:\/\//.test(s)
+            ? '<a href="' + safe + '" target="_blank" rel="noopener">' + safe + "</a>"
+            : "<a>" + safe + "</a>";
+        }).join("") +
+        "</div>";
+    }
+
+    return (
+      '<div class="headline">' +
+        '<div class="brand">' + escapeHtml(d.brand || "Unidentified") + "</div>" +
+        '<div class="model">' + escapeHtml(d.model || "Model not determined") + "</div>" +
+        (metaBits ? '<div class="meta">' + metaBits + "</div>" : "") +
+        (d.identification_confidence
+          ? '<div class="conf">Identification confidence: ' + escapeHtml(d.identification_confidence) + "</div>"
+          : "") +
+      "</div>" +
+
+      '<div class="price-grid">' +
+        '<div class="price-cell"><div class="k">Retail (RRP)</div><div class="v">' +
+          money(d.rrp && d.rrp.amount, (d.rrp && d.rrp.currency) || cur) + "</div>" +
+          (d.rrp && d.rrp.note ? '<div class="vnote">' + escapeHtml(d.rrp.note) + "</div>" : "") +
+        "</div>" +
+        '<div class="price-cell"><div class="k">Estimated resale' +
+          (d.resale_estimate && d.resale_estimate.for_condition ? " · " + escapeHtml(d.resale_estimate.for_condition) : "") +
+          '</div><div class="v">' +
+          money(d.resale_estimate && d.resale_estimate.low, cur) + " – " +
+          money(d.resale_estimate && d.resale_estimate.high, cur) + "</div>" +
+        "</div>" +
+      "</div>" +
+
+      '<div class="block"><h3>Condition</h3><div class="grade">' +
+        escapeHtml(d.condition_grade || "—") + "</div>" +
+        (d.condition_notes ? "<p style='margin-top:8px'>" + escapeHtml(d.condition_notes) + "</p>" : "") +
+      "</div>" +
+
+      authHtml +
+
+      (condRows
+        ? '<div class="block"><h3>Resale range by condition</h3><table class="cond"><tbody>' +
+          condRows + "</tbody></table></div>"
+        : "") +
+
+      (d.identification_notes
+        ? '<div class="block"><h3>Identification notes</h3><p>' + escapeHtml(d.identification_notes) + "</p></div>"
+        : "") +
+
+      (d.summary
+        ? '<div class="block"><h3>Summary</h3><p>' + escapeHtml(d.summary) + "</p></div>"
+        : "") +
+
+      (payload.narrative
+        ? "<details><summary>Full analysis &amp; reasoning</summary><div class='block' style='border:none'><div class='narrative'>" +
+          escapeHtml(payload.narrative) + "</div></div></details>"
+        : "") +
+
+      sourcesHtml +
+
+      '<p class="disclaimer">Resale figures are AI estimates from publicly visible market data, not a live feed of sold prices. ' +
+      "Treat them as a well-reasoned ballpark and confirm against your own comps before pricing.</p>" +
+
+      (opts.savedId ? '<p class="saved-note">✓ Saved to History</p>' : "") +
+
+      (opts.showReset ? '<div class="again"><button onclick="reset()">Value another bag</button></div>' : "")
+    );
+  }
+
+  function render(payload) {
+    results.innerHTML = buildResults(payload, { showReset: true, savedId: payload.savedId });
+    results.classList.add("show");
+    results.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function reset() {
+    chosen = [];
+    fileInput.value = "";
+    thumbs.innerHTML = "";
+    previewWrap.classList.remove("show");
+    results.classList.remove("show");
+    note.value = "";
+    go.disabled = true;
+    go.textContent = "Value this bag";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  window.reset = reset;
+
+  // ── History tab ───────────────────────────────────────────────
+  const tabsNav = document.getElementById("tabs");
+  const tabValue = document.getElementById("tabValue");
+  const tabHistory = document.getElementById("tabHistory");
+  const valuationView = document.getElementById("valuationView");
+  const historyView = document.getElementById("historyView");
+  const histStatus = document.getElementById("histStatus");
+  const histList = document.getElementById("histList");
+  const histDetail = document.getElementById("histDetail");
+  const histResults = document.getElementById("histResults");
+  const histPhotos = document.getElementById("histPhotos");
+  const histBack = document.getElementById("histBack");
+
+  function setupTabs() {
+    if (!historyEnabled) { tabsNav.hidden = true; return; }
+    tabsNav.hidden = false;
+    tabValue.onclick = () => showTab("value");
+    tabHistory.onclick = () => showTab("history");
+    histBack.onclick = () => { histDetail.hidden = true; histList.hidden = false; };
+  }
+
+  function showTab(which) {
+    const isHist = which === "history";
+    tabValue.classList.toggle("active", !isHist);
+    tabHistory.classList.toggle("active", isHist);
+    valuationView.hidden = isHist;
+    historyView.hidden = !isHist;
+    if (isHist) loadHistory();
+  }
+
+  function relock() {
+    localStorage.removeItem(CODE_KEY);
+    accessCode = "";
+    lock.classList.remove("hide");
+    codeInput.focus();
+  }
+
+  async function loadHistory() {
+    histDetail.hidden = true;
+    histList.hidden = false;
+    histStatus.hidden = false;
+    histStatus.textContent = "Loading…";
+    try {
+      const r = await fetch("/api/history", { headers: accessCode ? { "x-access-code": accessCode } : {} });
+      if (r.status === 401) { relock(); return; }
+      const payload = await r.json();
+      renderHistoryList(payload.items || []);
+    } catch (e) {
+      histStatus.textContent = "Couldn't load history.";
+    }
+  }
+
+  function fmtDate(s) {
+    try {
+      const d = new Date(s);
+      return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) +
+        " · " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    } catch { return ""; }
+  }
+
+  function authClass(a) {
+    return { "Likely authentic": "likely", "Some concerns": "some",
+      "Strong concerns": "strong", "Cannot assess from these photos": "cannot" }[a] || "cannot";
+  }
+
+  function renderHistoryList(items) {
+    if (!items.length) {
+      histList.innerHTML = "";
+      histStatus.hidden = false;
+      histStatus.textContent = "No valuations saved yet. Value a bag and it'll appear here.";
+      return;
+    }
+    histStatus.hidden = true;
+    histList.innerHTML = "";
+    items.forEach((it) => {
+      const card = document.createElement("div");
+      card.className = "hist-card";
+      const photo = (it.photo_urls && it.photo_urls[0]) || "";
+      const cur = it.rrp_currency ||
+        (it.data && it.data.resale_estimate && it.data.resale_estimate.currency) || "EUR";
+      const resale = (it.resale_low != null || it.resale_high != null)
+        ? money(it.resale_low, cur) + " – " + money(it.resale_high, cur) : "—";
+      const auth = it.authenticity_assessment || "";
+      card.innerHTML =
+        (photo
+          ? '<img class="hist-thumb" src="' + escapeHtml(photo) + '" alt="">'
+          : '<div class="hist-thumb ph">◈</div>') +
+        '<div class="hist-main">' +
+          '<div class="hist-brand">' + escapeHtml(it.brand || "Unidentified") + "</div>" +
+          '<div class="hist-model">' + escapeHtml(it.model || "—") + "</div>" +
+          '<div class="hist-meta">' + escapeHtml(fmtDate(it.created_at)) +
+            (it.condition_grade ? " · " + escapeHtml(it.condition_grade) : "") + "</div>" +
+        "</div>" +
+        '<div class="hist-right">' +
+          '<div class="hist-plabel">Resale</div>' +
+          '<div class="hist-price">' + resale + "</div>" +
+          (auth ? '<div class="hist-auth ' + authClass(auth) + '">' + escapeHtml(auth) + "</div>" : "") +
+        "</div>";
+      card.onclick = () => openDetail(it);
+      histList.appendChild(card);
+    });
+  }
+
+  function openDetail(it) {
+    histList.hidden = true;
+    histStatus.hidden = true;
+    histDetail.hidden = false;
+    histPhotos.innerHTML = (it.photo_urls || [])
+      .map((u) => '<img src="' + escapeHtml(u) + '" alt="">').join("");
+    histResults.innerHTML = buildResults({ data: it.data }, { showReset: false });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  // ──────────────────────────────────────────────────────────────
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+</script>

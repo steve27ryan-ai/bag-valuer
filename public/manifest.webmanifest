@@ -1,0 +1,14 @@
+{
+  "name": "Siopaella Bag Valuer",
+  "short_name": "Bag Valuer",
+  "description": "Identify a designer bag and estimate its RRP and resale value.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e1712",
+  "theme_color": "#1e1712",
+  "icons": [
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
+    { "src": "/icon-180.png", "type": "image/png", "sizes": "180x180" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}
