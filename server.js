@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 import { randomUUID } from "crypto";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
@@ -183,11 +184,28 @@ async function saveValuation({ data, note, files }) {
   const photo_urls = [];
   for (let i = 0; i < files.length; i++) {
     try {
-      const ext = ((files[i].mimetype || "image/jpeg").split("/")[1] || "jpg").replace("jpeg", "jpg");
+      // Shrink the STORED copy only (the identification already used the full-res image).
+      // Keeps History light: ~200–350 KB per photo instead of several MB.
+      let body, contentType, ext;
+      try {
+        body = await sharp(files[i].buffer)
+          .rotate() // bake in EXIF orientation so it displays upright
+          .resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: true })
+          .jpeg({ quality: 72 })
+          .toBuffer();
+        contentType = "image/jpeg";
+        ext = "jpg";
+      } catch (rz) {
+        // If shrinking fails for any reason, fall back to the original file.
+        console.error("Resize failed, storing original:", rz.message);
+        body = files[i].buffer;
+        contentType = files[i].mimetype || "image/jpeg";
+        ext = (contentType.split("/")[1] || "jpg").replace("jpeg", "jpg");
+      }
       const path = `${id}/${i}.${ext}`;
       const { error } = await supabase.storage
         .from(PHOTO_BUCKET)
-        .upload(path, files[i].buffer, { contentType: files[i].mimetype, upsert: true });
+        .upload(path, body, { contentType, upsert: true });
       if (!error) {
         const { data: pub } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
         if (pub && pub.publicUrl) photo_urls.push(pub.publicUrl);
