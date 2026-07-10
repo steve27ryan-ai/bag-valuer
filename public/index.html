@@ -197,6 +197,10 @@
   .hist-photos img { width: 110px; height: 110px; object-fit: cover; background: var(--sand); }
 
   /* Authenticity */
+  .auth-warn { background: #fbf3e2; border: 1px solid #e8d59e; color: #7a5f1f; font-size: 0.82rem;
+    line-height: 1.55; padding: 13px 16px; margin-bottom: 16px; }
+  .auth-warn strong { font-weight: 600; }
+  .auth-sub { font-size: 0.82rem; color: var(--stone); margin: 12px 0 4px; line-height: 1.6; }
   .auth-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
   .auth-badge { font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 7px 14px; border-radius: 2px; font-weight: 400; }
   .auth-likely { background: #e7f0e8; color: #2f6b3d; border: 1px solid #bcd8c1; }
@@ -561,16 +565,25 @@
           needed.map(escapeHtml).join(" · ") + "</div>"
         : "";
 
+      const tone = authTone(a.assessment);
+      // The headline can never reassure. Red only for a counterfeit flag; everything else is a
+      // neutral "not verified" — a good fake passes photo checks, so we never imply "genuine".
+      const headline = tone === "strong"
+        ? escapeHtml(a.assessment || "Red flags — likely counterfeit")
+        : "Not verified from photos";
+
       authHtml =
         '<div class="block"><h3>Authenticity screening</h3>' +
-        '<div class="auth-head"><span class="auth-badge ' + cls + '">' +
-          escapeHtml(a.assessment || "Cannot assess") + "</span>" +
-          (a.confidence ? '<span class="auth-conf">Confidence: ' + escapeHtml(a.confidence) + "</span>" : "") +
+        '<div class="auth-warn">⚠ This is a screening aid, <strong>not proof of authenticity</strong>. A good fake can pass a photo check. ' +
+        "Always have a bag professionally authenticated before you buy or resell it.</div>" +
+        '<div class="auth-head"><span class="auth-badge ' + cls + '">' + headline + "</span>" +
+          (tone === "strong" && a.confidence ? '<span class="auth-conf">Confidence: ' + escapeHtml(a.confidence) + "</span>" : "") +
         "</div>" +
+        (tone !== "strong"
+          ? '<p class="auth-sub">Nothing here confirms the bag is genuine. Use the checks below to decide what to inspect and which photos to add, then send it for authentication.</p>'
+          : "") +
         (checkRows ? '<div class="checks">' + checkRows + "</div>" : "") +
         flagsHtml + neededHtml +
-        '<div class="auth-caveat">This is an automated first-pass screen from photos only — not a certificate of authenticity. ' +
-        "Absence of red flags is not proof a bag is genuine; super-fakes can pass a photo review. Use professional authentication before any high-value sale.</div>" +
         "</div>";
     }
 
@@ -725,15 +738,14 @@
     } catch { return ""; }
   }
 
-  // Map any assessment wording (new, old, or slightly varied) to a colour tone.
-  // Defaults to the cautious/neutral tone rather than green.
+  // Map any assessment wording to a colour tone. There is deliberately NO green/"pass" tone:
+  // red only for a counterfeit flag, amber for stated concerns, neutral for everything else.
+  // A photo screen can never confirm a bag is genuine, so it must never look reassuring.
   function authTone(a) {
     const s = (a || "").toLowerCase();
     if (s.includes("counterfeit") || s.includes("likely fake") || s.includes("strong concern")) return "strong";
-    if (s.includes("insufficient") || s.includes("cannot") || s.includes("not enough")) return "cannot";
     if (s.includes("concern")) return "some";
-    if (s.includes("no red flag") || s.includes("likely authentic") || s.includes("no obvious")) return "likely";
-    return "cannot";
+    return "cannot"; // no red flags / insufficient / not verified / unknown → neutral
   }
   function authClass(a) { return authTone(a); }
 

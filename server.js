@@ -102,22 +102,36 @@ Your job:
      leather and hardware; heat-stamp and hardware engraving — font, depth, evenness, spelling;
      stitch count and quilting alignment across seams; hardware weight, screws and finish; interior
      stamp, lining and tag; overall symmetry.
-   - For EACH checkpoint report CONSISTENT, INCONSISTENT (a red flag), or NOT VISIBLE. List every
-     red flag and everything you could not verify.
-   - Choose ONE assessment, applying these HARD RULES:
-       * "Red flags — likely counterfeit": any marker is inconsistent with a genuine example, or the
-         serial/era doesn't match the leather/hardware.
-       * "Insufficient photos to screen": if the serial/date code, interior stamp, or other CRITICAL
-         markers are NOT clearly legible in the photos. You may NOT pass a bag whose key markers you
-         could not actually see. When genuinely unsure, choose THIS, not a pass.
-       * "No red flags in visible areas": ONLY when you have actually read the serial/date code AND
-         verified several key brand-specific markers AND none are inconsistent. This is explicitly
-         NOT a statement that the bag is genuine — only that nothing visible is wrong.
-   - A good fake can pass a photo screen; absence of red flags is NEVER proof of authenticity. Give
-     a confidence level and list the additional close-up photos that would most improve the screen
-     (date-code/serial macro, interior stamp & lining, hardware underside/engraving, base & corners).
-   - Be conservative: it is far more costly for this business to wave through a fake than to send a
-     genuine bag for a second look. When the visible evidence is thin, do not pass it.
+   - For EACH checkpoint report CONSISTENT, INCONSISTENT (a red flag), or NOT VISIBLE. A
+     counterfeit's whole purpose is to copy the shape, logo, sticker LAYOUT, monogram and quilting,
+     so "the format/layout looks like a genuine one" is NOT a positive signal and must NOT be marked
+     CONSISTENT. Only mark a checkpoint CONSISTENT when the photo clearly shows a SPECIFIC,
+     hard-to-fake genuine trait; if the shot merely shows the general look, mark it NOT VISIBLE.
+   - CRITICAL MARKERS — these must ALL be clearly visible AND consistent before a "no red flags"
+     result is even permitted. If ANY one of them is NOT VISIBLE (or you are unsure), you are
+     FORBIDDEN from returning "No red flags" and MUST return "Insufficient photos to screen":
+       * Chanel: interior "CHANEL — Made in France/Italy" heat stamp and its font; serial sticker +
+         hologram AND that the serial era matches the hardware/leather; CC turnlock right-C-over-
+         left-C overlap seen straight-on; stitch density/quilting alignment; hardware engraving.
+       * Louis Vuitton: date code (format + the correct hidden location for this model); heat-stamp
+         font/depth; hardware engraving.
+       * Hermès: blind/date stamp; the hand saddle-stitching pattern; hardware engraving & screws.
+       * Gucci / Dior / YSL / Prada / other: interior brand + serial/heat stamp; hardware engraving;
+         stitching.
+   - Choose ONE assessment:
+       * "Red flags — likely counterfeit": any marker is inconsistent, misspelled, wrong font, or the
+         serial/era does not match the leather/hardware.
+       * "Insufficient photos to screen": ANY critical marker above is not clearly visible/legible —
+         this is the case for MOST casual photo sets (exterior-only or serial-corner-only shots).
+         This is the correct, honest answer when the make-or-break photos are missing; default here
+         whenever unsure. Never pass a bag whose critical markers you could not actually inspect.
+       * "No red flags in visible areas": ONLY when EVERY critical marker for the brand is both
+         visible and consistent. Even then it is NOT a statement that the bag is genuine.
+   - A good fake can pass a photo screen; absence of red flags is NEVER proof of authenticity. Give a
+     confidence level and list the exact additional photos needed to properly screen (interior heat
+     stamp macro, straight-on CC turnlock / hardware engraving, stitch macro along a seam, base &
+     corners). It is far more costly to wave through a fake than to ask for more photos — when the
+     evidence is thin, return "Insufficient".
 4. RETAIL PRICE (RRP) — this MUST be the European / Irish EURO price actually charged in Ireland.
    CRITICAL RULE: brands (especially Louis Vuitton) set DIFFERENT prices per region. You must NEVER
    take a US dollar price and convert it into euros — a USD→EUR conversion is NOT the RRP and is
@@ -321,6 +335,19 @@ app.post("/api/analyze", requireCode, upload.array("photos", MAX_PHOTOS), async 
       .join("\n");
 
     const data = extractJson(fullText);
+
+    // Safety net: a photo screen must never stand as a "pass". If the model did not flag a
+    // counterfeit but left any marker unverified, normalise the record to "needs expert check".
+    if (data && data.authenticity) {
+      const a = data.authenticity;
+      const checks = Array.isArray(a.checks) ? a.checks : [];
+      const anyUnseen = checks.some((c) => /not\s*visible/i.test((c && c.status) || ""));
+      const s = (a.assessment || "").toLowerCase();
+      const flaggedFake = s.includes("counterfeit") || s.includes("likely fake");
+      if (!flaggedFake && anyUnseen) {
+        a.assessment = "Insufficient photos to screen";
+      }
+    }
 
     // Record it (best-effort — won't block or fail the response).
     let savedId = null;
