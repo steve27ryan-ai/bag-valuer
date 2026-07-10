@@ -537,8 +537,7 @@
     let authHtml = "";
     const a = d.authenticity;
     if (a && (a.assessment || (a.checks && a.checks.length))) {
-      const cls = { "Likely authentic": "auth-likely", "Some concerns": "auth-some",
-        "Strong concerns": "auth-strong", "Cannot assess from these photos": "auth-cannot" }[a.assessment] || "auth-cannot";
+      const cls = "auth-" + authTone(a.assessment);
 
       const checkRows = (a.checks || [])
         .filter((c) => c && c.feature)
@@ -726,10 +725,17 @@
     } catch { return ""; }
   }
 
-  function authClass(a) {
-    return { "Likely authentic": "likely", "Some concerns": "some",
-      "Strong concerns": "strong", "Cannot assess from these photos": "cannot" }[a] || "cannot";
+  // Map any assessment wording (new, old, or slightly varied) to a colour tone.
+  // Defaults to the cautious/neutral tone rather than green.
+  function authTone(a) {
+    const s = (a || "").toLowerCase();
+    if (s.includes("counterfeit") || s.includes("likely fake") || s.includes("strong concern")) return "strong";
+    if (s.includes("insufficient") || s.includes("cannot") || s.includes("not enough")) return "cannot";
+    if (s.includes("concern")) return "some";
+    if (s.includes("no red flag") || s.includes("likely authentic") || s.includes("no obvious")) return "likely";
+    return "cannot";
   }
+  function authClass(a) { return authTone(a); }
 
   function renderHistoryList(items) {
     if (!items.length) {
