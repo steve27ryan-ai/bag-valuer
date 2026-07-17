@@ -1,11 +1,11 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Siopaella · Bag Valuer</title>
+<title>Siopaella · Team Hub</title>
 <meta name="theme-color" content="#1e1712" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Bag Valuer" />
+<meta name="apple-mobile-web-app-title" content="Siopaella" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="apple-touch-icon" href="/icon-180.png" />
 <link rel="icon" href="/icon.svg" type="image/svg+xml" />
@@ -28,6 +28,7 @@
     --border: rgba(158, 126, 90, 0.18);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
   body {
     font-family: "Jost", sans-serif;
     font-weight: 300;
@@ -162,6 +163,26 @@
   table.cond td:first-child { color: var(--stone); }
   table.cond td:last-child { text-align: right; font-family: "Cormorant Garamond", serif; font-size: 1.1rem; }
 
+  /* Message board */
+  .msgboard { background: var(--pearl); border: 1px solid var(--border); border-top: 3px solid var(--bronze);
+    padding: 20px 24px; margin: 0 0 30px; }
+  .msg-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .msg-h { font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--bronze-deep); }
+  .msg-add { display: flex; gap: 8px; margin: 14px 0; }
+  .msg-add input { flex: 1; font-family: "Jost"; font-size: 0.92rem; color: var(--espresso);
+    border: 1px solid var(--border); background: var(--white); padding: 11px 13px; }
+  .msg-add input:focus { outline: none; border-color: var(--bronze); }
+  .msg-list { display: flex; flex-direction: column; }
+  .msg-item { padding: 13px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+  .msg-item:last-child { border-bottom: none; }
+  .msg-item:first-child { padding-top: 14px; }
+  .msg-body { flex: 1; }
+  .msg-text { font-family: "Cormorant Garamond", serif; font-size: 1.2rem; color: var(--espresso); line-height: 1.35; }
+  .msg-meta { font-size: 0.68rem; color: var(--stone); letter-spacing: 0.04em; margin-top: 4px; }
+  .msg-del { background: none; border: none; color: var(--bronze-pale); cursor: pointer; font-size: 1rem; line-height: 1; flex-shrink: 0; }
+  .msg-del:hover { color: #b45; }
+  .msg-empty { font-size: 0.82rem; color: var(--stone); font-style: italic; padding: 6px 0; }
+
   /* Tabs */
   .tabs { display: flex; gap: 4px; margin-bottom: 32px; border-bottom: 1px solid var(--border); }
   .tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -195,6 +216,106 @@
   .hist-back:hover { background: var(--bronze); color: var(--white); }
   .hist-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
   .hist-photos img { width: 110px; height: 110px; object-fit: cover; background: var(--sand); }
+
+  /* Tasks — name picker */
+  .whoami { text-align: center; padding: 40px 0; }
+  .who-title { font-family: "Cormorant Garamond", serif; font-size: 1.6rem; margin-bottom: 24px; }
+  .who-list { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .who-list button { background: var(--white); border: 1px solid var(--bronze); color: var(--espresso);
+    padding: 0.9rem 1.8rem; font-family: "Cormorant Garamond", serif; font-size: 1.2rem; cursor: pointer; transition: 0.25s; }
+  .who-list button:hover { background: var(--bronze); color: var(--white); }
+
+  /* Tasks — bar & controls */
+  .tasks-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+  .tasks-you { font-size: 0.82rem; color: var(--stone); }
+  .tasks-you strong { color: var(--espresso); font-weight: 400; }
+  .linkbtn { background: none; border: none; color: var(--bronze-deep); cursor: pointer; font-size: 0.72rem; text-decoration: underline; font-family: "Jost"; }
+  .tasks-controls { display: flex; align-items: center; gap: 12px; }
+  .seg { display: inline-flex; border: 1px solid var(--border); }
+  .seg-btn { background: var(--white); border: none; padding: 8px 16px; cursor: pointer; font-family: "Jost";
+    font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--stone); }
+  .seg-btn.active { background: var(--espresso); color: var(--pearl); }
+  .addbtn { display: inline-flex; align-items: center; gap: 8px; background: var(--espresso); color: var(--pearl);
+    border: none; font-family: "Jost"; font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 0.7rem 1.3rem; cursor: pointer; }
+  .addbtn:hover { background: var(--bronze); }
+
+  /* Tasks — manage team */
+  .manage { background: var(--white); border: 1px solid var(--border); padding: 20px; margin-bottom: 22px; max-width: 420px; }
+  .manage-title { font-family: "Cormorant Garamond", serif; font-size: 1.3rem; margin-bottom: 14px; }
+  .manage-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+  .manage-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--ivory); border: 1px solid var(--border); }
+  .manage-row span { font-size: 0.92rem; }
+  .manage-row button { background: none; border: none; color: var(--bronze-pale); cursor: pointer; font-size: 1rem; line-height: 1; }
+  .manage-row button:hover { color: #b45; }
+  .manage-add { display: flex; gap: 8px; }
+  .manage-add input { flex: 1; font-family: "Jost"; font-size: 0.9rem; color: var(--espresso); border: 1px solid var(--border); background: var(--ivory); padding: 10px 12px; }
+  .manage-add input:focus { outline: none; border-color: var(--bronze); }
+  .manage-err { color: #8a3b3b; font-size: 0.78rem; min-height: 1em; margin-top: 8px; }
+  .manage-close { margin-top: 6px; }
+
+  /* Tasks — add/edit form */
+  .task-form { background: var(--white); border: 1px solid var(--border); padding: 18px; margin-bottom: 22px; display: flex; flex-direction: column; gap: 12px; }
+  .task-form input, .task-form select { font-family: "Jost"; font-size: 0.9rem; color: var(--espresso);
+    border: 1px solid var(--border); background: var(--ivory); padding: 10px 12px; }
+  .task-form input:focus, .task-form select:focus { outline: none; border-color: var(--bronze); }
+  #tfTitle { font-size: 1rem; }
+  .task-form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .task-form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .btn-ghost { background: none; border: 1px solid var(--border); color: var(--stone); padding: 0.6rem 1.4rem; cursor: pointer; font-family: "Jost"; font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; }
+  .btn-solid { background: var(--espresso); color: var(--pearl); border: none; padding: 0.6rem 1.6rem; cursor: pointer; font-family: "Jost"; font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; }
+  .btn-solid:hover { background: var(--bronze); }
+
+  .task-status-msg { text-align: center; color: var(--stone); font-size: 0.85rem; padding: 24px; }
+
+  /* Tasks — photo attach */
+  .task-photos { display: flex; flex-direction: column; gap: 10px; }
+  .task-photo-add { display: inline-flex; align-items: center; align-self: flex-start; gap: 6px;
+    border: 1px dashed var(--bronze); color: var(--bronze-deep); padding: 8px 14px; cursor: pointer;
+    font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; }
+  .task-photo-add:hover { background: var(--pearl); }
+  .tf-thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tf-thumb { position: relative; width: 66px; height: 66px; }
+  .tf-thumb img { width: 66px; height: 66px; object-fit: cover; background: var(--sand); }
+  .tf-thumb button { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--espresso); color: #fff; border: none; cursor: pointer; font-size: 0.85rem; line-height: 1; }
+  .tf-thumb button:hover { background: var(--bronze); }
+  .card-thumbs { display: flex; gap: 5px; margin: 9px 0 0; align-items: center; }
+  .card-thumbs img { width: 40px; height: 40px; object-fit: cover; background: var(--sand); cursor: pointer; }
+  .card-thumbs .more { font-size: 0.66rem; color: var(--stone); }
+  .lightbox { position: fixed; inset: 0; background: rgba(20,15,12,0.88); z-index: 200;
+    display: flex; align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }
+  .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+  /* Tasks — board */
+  .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; align-items: start; }
+  .col { background: var(--white); border: 1px solid var(--border); }
+  .colhead { display: flex; align-items: center; gap: 11px; padding: 15px 16px; border-bottom: 1px solid var(--border); }
+  .av { width: 32px; height: 32px; border-radius: 50%; background: var(--sand); color: var(--bronze-deep);
+    display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; }
+  .who { font-family: "Cormorant Garamond", serif; font-size: 1.25rem; line-height: 1; }
+  .count { margin-left: auto; font-size: 0.68rem; color: var(--stone); }
+  .cards { padding: 11px; display: flex; flex-direction: column; gap: 9px; min-height: 40px; }
+  .col-empty { color: var(--bronze-pale); font-size: 0.78rem; text-align: center; padding: 14px 0; }
+  .card { background: var(--ivory); border: 1px solid var(--border); padding: 12px 13px; position: relative; }
+  .card.done { opacity: 0.6; }
+  .card .ttl { font-size: 0.88rem; color: var(--ink); line-height: 1.35; margin-bottom: 10px; padding-right: 16px; cursor: pointer; }
+  .card.done .ttl { text-decoration: line-through; }
+  .card .rm { position: absolute; top: 8px; right: 8px; background: none; border: none; color: var(--bronze-pale);
+    cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; }
+  .card .rm:hover { color: #b45; }
+  .meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .chip { font-size: 0.58rem; letter-spacing: 0.05em; padding: 3px 8px; text-transform: uppercase; }
+  .due { background: var(--pearl); color: var(--bronze-deep); }
+  .due.today { background: #f3ead9; color: #8a6d1f; }
+  .due.over { background: #fbeeee; color: #8a3b3b; }
+  .pri { display: inline-flex; align-items: center; gap: 5px; font-size: 0.66rem; color: var(--stone); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot.high { background: #c0504d; } .dot.med { background: #c99a4a; } .dot.low { background: #9bb39b; }
+  .pill { margin-left: auto; font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 9px;
+    border: 1px solid var(--border); color: var(--stone); background: none; cursor: pointer; font-family: "Jost"; }
+  .pill.doing { border-color: var(--bronze); color: var(--bronze-deep); }
+  .pill.done { border-color: #9bb39b; color: #3f6b3f; }
 
   /* Authenticity */
   .auth-warn { background: #fbf3e2; border: 1px solid #e8d59e; color: #7a5f1f; font-size: 0.82rem;
@@ -254,14 +375,27 @@
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Siopaella · Appraisal</div>
-    <h1>Bag <em>Valuer</em></h1>
-    <p class="sub">Upload a photo of a designer bag. Get its make, model, condition, retail price and an estimated resale range.</p>
+    <div class="eyebrow">Siopaella · Designer Exchange</div>
+    <h1>Team <em>Hub</em></h1>
+    <p class="sub">Valuations, tasks and team updates — all in one place.</p>
   </header>
+
+  <section class="msgboard" id="msgBoard" hidden>
+    <div class="msg-head">
+      <span class="msg-h">Team updates</span>
+      <button class="linkbtn" id="msgToggle" type="button">post an update</button>
+    </div>
+    <form class="msg-add" id="msgAdd" hidden>
+      <input id="msgInput" placeholder="e.g. Weekly sales target: €12,000 — let's go team!" maxlength="500" autocomplete="off" />
+      <button type="submit" class="btn-solid" id="msgPost">Post</button>
+    </form>
+    <div class="msg-list" id="msgList"></div>
+  </section>
 
   <nav class="tabs" id="tabs" hidden>
     <button class="tab active" id="tabValue" type="button">New valuation</button>
-    <button class="tab" id="tabHistory" type="button">History</button>
+    <button class="tab" id="tabHistory" type="button" hidden>History</button>
+    <button class="tab" id="tabTasks" type="button">Tasks</button>
   </nav>
 
   <div id="valuationView">
@@ -305,6 +439,67 @@
       <div class="results show" id="histResults"></div>
     </div>
   </div>
+
+  <div id="tasksView" hidden>
+    <div class="whoami" id="whoPicker" hidden>
+      <div class="who-title">Who's using this device?</div>
+      <div class="who-list" id="whoList"></div>
+    </div>
+
+    <div id="tasksMain" hidden>
+      <div class="tasks-bar">
+        <div class="tasks-you">You: <strong id="youName">—</strong>
+          <button class="linkbtn" id="switchUser" type="button">switch</button>
+          <button class="linkbtn" id="manageTeam" type="button">manage team</button>
+        </div>
+        <div class="tasks-controls">
+          <div class="seg" id="taskFilter">
+            <button class="seg-btn active" data-f="all" type="button">Team</button>
+            <button class="seg-btn" data-f="mine" type="button">Mine</button>
+          </div>
+          <button class="addbtn" id="addTaskBtn" type="button">+ Add task</button>
+        </div>
+      </div>
+
+      <div class="manage" id="managePanel" hidden>
+        <div class="manage-title">Team members</div>
+        <div class="manage-list" id="manageList"></div>
+        <form class="manage-add" id="manageAdd">
+          <input id="newMember" placeholder="Add a name" maxlength="80" autocomplete="off" />
+          <button type="submit" class="btn-solid">Add</button>
+        </form>
+        <div class="manage-err" id="manageErr"></div>
+        <button class="linkbtn" id="manageClose" type="button">Close</button>
+      </div>
+
+      <form class="task-form" id="taskForm" hidden>
+        <input id="tfTitle" placeholder="What needs doing?" maxlength="300" />
+        <div class="task-form-row">
+          <select id="tfAssignee" aria-label="Assign to"></select>
+          <input id="tfDue" type="date" aria-label="Due date" />
+          <select id="tfPriority" aria-label="Priority">
+            <option value="high">High</option>
+            <option value="med" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div class="task-photos">
+          <label class="task-photo-add">
+            <input id="tfPhotos" type="file" accept="image/*" multiple hidden />
+            + Add photos
+          </label>
+          <div class="tf-thumbs" id="tfThumbs"></div>
+        </div>
+        <div class="task-form-actions">
+          <button type="button" class="btn-ghost" id="tfCancel">Cancel</button>
+          <button type="submit" class="btn-solid" id="tfSave">Save task</button>
+        </div>
+      </form>
+
+      <div class="task-status-msg" id="taskMsg">Loading…</div>
+      <div class="board" id="board"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -316,6 +511,7 @@
   const CODE_KEY = "bagvaluer_code";
   let accessCode = localStorage.getItem(CODE_KEY) || "";
   let historyEnabled = false;
+  let staffList = [];
 
   async function initGate() {
     let session;
@@ -325,6 +521,7 @@
       session = { codeRequired: false, historyEnabled: false };
     }
     historyEnabled = !!session.historyEnabled;
+    staffList = session.staff || [];
     setupTabs();
     if (!session.codeRequired) {
       lock.classList.add("hide");
@@ -336,6 +533,7 @@
     } else {
       codeInput.focus();
     }
+    if (lock.classList.contains("hide")) loadMessages();
   }
 
   async function verify(code) {
@@ -359,6 +557,7 @@
       accessCode = code;
       localStorage.setItem(CODE_KEY, code);
       lock.classList.add("hide");
+      loadMessages();
     } else {
       lerr.textContent = "That passcode isn't right.";
       codeInput.value = "";
@@ -692,20 +891,28 @@
   const histBack = document.getElementById("histBack");
 
   function setupTabs() {
-    if (!historyEnabled) { tabsNav.hidden = true; return; }
-    tabsNav.hidden = false;
+    tabsNav.hidden = false; // Tasks is always available, so the nav always shows
+    tabHistory.hidden = !historyEnabled;
     tabValue.onclick = () => showTab("value");
     tabHistory.onclick = () => showTab("history");
+    tabTasks.onclick = () => showTab("tasks");
     histBack.onclick = () => { histDetail.hidden = true; histList.hidden = false; };
+    setupTasks();
+    setupMessages();
   }
 
   function showTab(which) {
     const isHist = which === "history";
-    tabValue.classList.toggle("active", !isHist);
+    const isTasks = which === "tasks";
+    const isValue = which === "value";
+    tabValue.classList.toggle("active", isValue);
     tabHistory.classList.toggle("active", isHist);
-    valuationView.hidden = isHist;
+    tabTasks.classList.toggle("active", isTasks);
+    valuationView.hidden = !isValue;
     historyView.hidden = !isHist;
+    tasksView.hidden = !isTasks;
     if (isHist) loadHistory();
+    if (isTasks) openTasks();
   }
 
   function relock() {
@@ -795,6 +1002,449 @@
       .map((u) => '<img src="' + escapeHtml(u) + '" alt="">').join("");
     histResults.innerHTML = buildResults({ data: it.data }, { showReset: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  // ──────────────────────────────────────────────────────────────
+
+  // ── Message board ─────────────────────────────────────────────
+  const msgBoard = document.getElementById("msgBoard");
+  const msgList = document.getElementById("msgList");
+  const msgAdd = document.getElementById("msgAdd");
+  const msgInput = document.getElementById("msgInput");
+  const msgToggle = document.getElementById("msgToggle");
+  const msgPost = document.getElementById("msgPost");
+
+  function setupMessages() {
+    msgToggle.onclick = () => {
+      msgAdd.hidden = !msgAdd.hidden;
+      if (!msgAdd.hidden) msgInput.focus();
+    };
+    msgAdd.onsubmit = onPostMessage;
+  }
+
+  async function loadMessages() {
+    try {
+      const r = await fetch("/api/messages", { headers: taskHeaders() });
+      if (r.status === 401) return;
+      const d = await r.json();
+      renderMessages(d.messages || []);
+      msgBoard.hidden = false;
+    } catch (e) { /* leave the board hidden if it can't load */ }
+  }
+
+  function renderMessages(list) {
+    msgList.innerHTML = "";
+    if (!list.length) {
+      msgList.innerHTML = '<div class="msg-empty">No updates yet — post the first one.</div>';
+      return;
+    }
+    list.forEach((m) => {
+      const item = document.createElement("div");
+      item.className = "msg-item";
+      item.innerHTML =
+        '<div class="msg-body"><div class="msg-text">' + escapeHtml(m.text) + "</div>" +
+        '<div class="msg-meta">' + (m.author ? escapeHtml(m.author) + " · " : "") + escapeHtml(fmtMsgDate(m.created_at)) + "</div></div>";
+      const del = document.createElement("button");
+      del.className = "msg-del";
+      del.type = "button";
+      del.textContent = "×";
+      del.setAttribute("aria-label", "Delete update");
+      del.onclick = () => deleteMessage(m.id);
+      item.appendChild(del);
+      msgList.appendChild(item);
+    });
+  }
+
+  async function onPostMessage(e) {
+    e.preventDefault();
+    const text = msgInput.value.trim();
+    if (!text) return;
+    msgPost.disabled = true;
+    try {
+      const r = await fetch("/api/messages", { method: "POST", headers: taskHeaders(true), body: JSON.stringify({ text, author: currentUser || "Team" }) });
+      if (r.status === 401) { relock(); return; }
+      const d = await r.json();
+      if (r.ok) { msgInput.value = ""; msgAdd.hidden = true; renderMessages(d.messages || []); }
+    } finally {
+      msgPost.disabled = false;
+    }
+  }
+
+  async function deleteMessage(id) {
+    if (!confirm("Delete this update?")) return;
+    const r = await fetch("/api/messages/" + id, { method: "DELETE", headers: taskHeaders() });
+    if (r.status === 401) { relock(); return; }
+    const d = await r.json();
+    if (r.ok) renderMessages(d.messages || []);
+  }
+
+  function fmtMsgDate(s) {
+    try {
+      const d = new Date(s);
+      return d.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + " · " +
+        d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    } catch { return ""; }
+  }
+  // ──────────────────────────────────────────────────────────────
+
+  // ── Tasks ─────────────────────────────────────────────────────
+  const tabTasks = document.getElementById("tabTasks");
+  const tasksView = document.getElementById("tasksView");
+  const whoPicker = document.getElementById("whoPicker");
+  const whoList = document.getElementById("whoList");
+  const tasksMain = document.getElementById("tasksMain");
+  const youName = document.getElementById("youName");
+  const switchUser = document.getElementById("switchUser");
+  const taskFilterEl = document.getElementById("taskFilter");
+  const addTaskBtn = document.getElementById("addTaskBtn");
+  const taskForm = document.getElementById("taskForm");
+  const tfTitle = document.getElementById("tfTitle");
+  const tfAssignee = document.getElementById("tfAssignee");
+  const tfDue = document.getElementById("tfDue");
+  const tfPriority = document.getElementById("tfPriority");
+  const tfCancel = document.getElementById("tfCancel");
+  const tfSave = document.getElementById("tfSave");
+  const tfPhotos = document.getElementById("tfPhotos");
+  const tfThumbs = document.getElementById("tfThumbs");
+  const taskMsg = document.getElementById("taskMsg");
+  const board = document.getElementById("board");
+  const manageTeam = document.getElementById("manageTeam");
+  const managePanel = document.getElementById("managePanel");
+  const manageList = document.getElementById("manageList");
+  const manageAdd = document.getElementById("manageAdd");
+  const newMember = document.getElementById("newMember");
+  const manageErr = document.getElementById("manageErr");
+  const manageClose = document.getElementById("manageClose");
+
+  const STAFF_KEY = "bagvaluer_staff";
+  let currentUser = localStorage.getItem(STAFF_KEY) || "";
+  let taskFilterMode = "all";
+  let editingId = null;
+  let cachedTasks = [];
+  let formImages = []; // strings: existing URLs or new data: URIs
+
+  function taskHeaders(json) {
+    const h = accessCode ? { "x-access-code": accessCode } : {};
+    if (json) h["Content-Type"] = "application/json";
+    return h;
+  }
+
+  function populateStaffControls() {
+    whoList.innerHTML = "";
+    tfAssignee.innerHTML = "";
+    staffList.forEach((name) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = name;
+      b.onclick = () => setUser(name);
+      whoList.appendChild(b);
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      tfAssignee.appendChild(opt);
+    });
+  }
+
+  function setupTasks() {
+    populateStaffControls();
+    manageTeam.onclick = () => { managePanel.hidden = false; manageErr.textContent = ""; renderManageList(); };
+    manageClose.onclick = () => { managePanel.hidden = true; };
+    manageAdd.onsubmit = onAddMember;
+    switchUser.onclick = () => {
+      currentUser = "";
+      localStorage.removeItem(STAFF_KEY);
+      taskForm.hidden = true;
+      renderTasksGate();
+    };
+    addTaskBtn.onclick = () => openTaskForm();
+    tfCancel.onclick = () => { taskForm.hidden = true; editingId = null; };
+    taskForm.onsubmit = onSaveTask;
+    tfPhotos.onchange = (e) => {
+      const files = [...e.target.files];
+      e.target.value = "";
+      files.forEach((f) => {
+        if (!f.type.startsWith("image/") || formImages.length >= 8) return;
+        const reader = new FileReader();
+        reader.onload = () => { formImages.push(reader.result); renderFormThumbs(); };
+        reader.readAsDataURL(f);
+      });
+    };
+    taskFilterEl.querySelectorAll(".seg-btn").forEach((btn) => {
+      btn.onclick = () => {
+        taskFilterMode = btn.dataset.f;
+        taskFilterEl.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === btn));
+        renderBoard();
+      };
+    });
+    // Card interactions (one delegated handler).
+    board.onclick = (e) => {
+      const actEl = e.target.closest("[data-act]");
+      const card = e.target.closest(".card");
+      if (!actEl || !card) return;
+      const task = cachedTasks.find((t) => t.id === card.dataset.id);
+      if (!task) return;
+      const act = actEl.dataset.act;
+      if (act === "status") cycleStatus(task);
+      else if (act === "del") deleteTask(task);
+      else if (act === "edit") openTaskForm(task);
+      else if (act === "photo") openLightbox((task.images || [])[+actEl.dataset.idx || 0]);
+    };
+  }
+
+  function openLightbox(src) {
+    if (!src) return;
+    const ov = document.createElement("div");
+    ov.className = "lightbox";
+    const img = document.createElement("img");
+    img.src = src;
+    ov.appendChild(img);
+    ov.onclick = () => ov.remove();
+    document.body.appendChild(ov);
+  }
+
+  function setUser(name) {
+    currentUser = name;
+    localStorage.setItem(STAFF_KEY, name);
+    renderTasksGate();
+    loadTasks();
+  }
+
+  function renderTasksGate() {
+    if (!currentUser) { whoPicker.hidden = false; tasksMain.hidden = true; return; }
+    whoPicker.hidden = true;
+    tasksMain.hidden = false;
+    youName.textContent = currentUser;
+  }
+
+  async function openTasks() {
+    renderTasksGate();
+    if (currentUser) await loadTasks();
+  }
+
+  function renderManageList() {
+    manageList.innerHTML = "";
+    staffList.forEach((name) => {
+      const row = document.createElement("div");
+      row.className = "manage-row";
+      const span = document.createElement("span");
+      span.textContent = name;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "×";
+      btn.setAttribute("aria-label", "Remove " + name);
+      btn.onclick = () => removeMember(name);
+      row.appendChild(span);
+      row.appendChild(btn);
+      manageList.appendChild(row);
+    });
+  }
+
+  function afterStaffChange() {
+    populateStaffControls();
+    renderManageList();
+    renderBoard();
+  }
+
+  async function onAddMember(e) {
+    e.preventDefault();
+    const name = newMember.value.trim();
+    if (!name) return;
+    manageErr.textContent = "";
+    try {
+      const r = await fetch("/api/staff", { method: "POST", headers: taskHeaders(true), body: JSON.stringify({ name }) });
+      if (r.status === 401) { relock(); return; }
+      const d = await r.json();
+      if (!r.ok) { manageErr.textContent = d.error || "Couldn't add that name."; return; }
+      staffList = d.staff || staffList;
+      newMember.value = "";
+      afterStaffChange();
+    } catch (err) {
+      manageErr.textContent = "Couldn't add that name.";
+    }
+  }
+
+  async function removeMember(name) {
+    if (!confirm("Remove " + name + " from the team? Their tasks stay on the board.")) return;
+    manageErr.textContent = "";
+    try {
+      const r = await fetch("/api/staff/" + encodeURIComponent(name), { method: "DELETE", headers: taskHeaders() });
+      if (r.status === 401) { relock(); return; }
+      const d = await r.json();
+      if (!r.ok) { manageErr.textContent = d.error || "Couldn't remove."; return; }
+      staffList = d.staff || staffList;
+      afterStaffChange();
+    } catch (err) {
+      manageErr.textContent = "Couldn't remove.";
+    }
+  }
+
+  async function loadTasks() {
+    taskMsg.hidden = false;
+    taskMsg.textContent = "Loading…";
+    board.innerHTML = "";
+    try {
+      const r = await fetch("/api/tasks", { headers: taskHeaders() });
+      if (r.status === 401) { relock(); return; }
+      const payload = await r.json();
+      cachedTasks = payload.tasks || [];
+      if (Array.isArray(payload.staff) && payload.staff.length) {
+        staffList = payload.staff;
+        populateStaffControls();
+      }
+      renderBoard();
+    } catch (e) {
+      taskMsg.hidden = false;
+      taskMsg.textContent = "Couldn't load tasks.";
+    }
+  }
+
+  function renderBoard() {
+    const cols = taskFilterMode === "mine" && currentUser ? [currentUser] : staffList.slice();
+    if (taskFilterMode !== "mine") {
+      cachedTasks.forEach((t) => { if (t.assignee && !cols.includes(t.assignee)) cols.push(t.assignee); });
+    }
+    taskMsg.hidden = true;
+    board.innerHTML = "";
+    cols.forEach((name) => {
+      const mine = cachedTasks.filter((t) => t.assignee === name);
+      const open = mine.filter((t) => t.status !== "done").length;
+      const col = document.createElement("div");
+      col.className = "col";
+      col.innerHTML =
+        '<div class="colhead"><div class="av">' + escapeHtml(initials(name)) + "</div>" +
+        '<div class="who">' + escapeHtml(name) + "</div>" +
+        '<div class="count">' + open + " open</div></div>" +
+        '<div class="cards">' +
+        (mine.length ? mine.map(taskCard).join("") : '<div class="col-empty">No tasks</div>') +
+        "</div>";
+      board.appendChild(col);
+    });
+  }
+
+  function taskCard(t) {
+    const dueHtml = t.due_date
+      ? '<span class="chip due ' + dueClass(t.due_date) + '">' + escapeHtml(dueLabel(t.due_date)) + "</span>"
+      : "";
+    const priLabel = { high: "High", med: "Med", low: "Low" }[t.priority] || "Med";
+    const statusLabel = { todo: "To do", doing: "Doing", done: "Done" }[t.status] || "To do";
+    const statusCls = t.status === "doing" ? "doing" : t.status === "done" ? "done" : "";
+    const imgs = Array.isArray(t.images) ? t.images : [];
+    let thumbsHtml = "";
+    if (imgs.length) {
+      const shown = imgs.slice(0, 3)
+        .map((u, i) => '<img data-act="photo" data-idx="' + i + '" src="' + escapeHtml(u) + '" alt="attachment">')
+        .join("");
+      const more = imgs.length > 3 ? '<span class="more">+' + (imgs.length - 3) + "</span>" : "";
+      thumbsHtml = '<div class="card-thumbs">' + shown + more + "</div>";
+    }
+    return (
+      '<div class="card ' + (t.status === "done" ? "done" : "") + '" data-id="' + escapeHtml(t.id) + '">' +
+      '<button class="rm" data-act="del" title="Delete" aria-label="Delete task">×</button>' +
+      '<div class="ttl" data-act="edit">' + escapeHtml(t.title) + "</div>" +
+      thumbsHtml +
+      '<div class="meta">' + dueHtml +
+      '<span class="pri"><span class="dot ' + (t.priority || "med") + '"></span>' + priLabel + "</span>" +
+      '<button class="pill ' + statusCls + '" data-act="status" title="Tap to change">' + statusLabel + "</button>" +
+      "</div></div>"
+    );
+  }
+
+  function openTaskForm(task) {
+    editingId = task ? task.id : null;
+    tfTitle.value = task ? task.title : "";
+    tfAssignee.value = task ? task.assignee : currentUser || staffList[0] || "";
+    tfDue.value = task && task.due_date ? String(task.due_date).slice(0, 10) : "";
+    tfPriority.value = task ? task.priority || "med" : "med";
+    formImages = task && Array.isArray(task.images) ? task.images.slice() : [];
+    renderFormThumbs();
+    tfSave.textContent = task ? "Update task" : "Save task";
+    taskForm.hidden = false;
+    tfTitle.focus();
+  }
+
+  function renderFormThumbs() {
+    tfThumbs.innerHTML = "";
+    formImages.forEach((src, i) => {
+      const div = document.createElement("div");
+      div.className = "tf-thumb";
+      const img = document.createElement("img");
+      img.src = src;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "×";
+      btn.setAttribute("aria-label", "Remove photo");
+      btn.onclick = () => { formImages.splice(i, 1); renderFormThumbs(); };
+      div.appendChild(img);
+      div.appendChild(btn);
+      tfThumbs.appendChild(div);
+    });
+  }
+
+  async function onSaveTask(e) {
+    e.preventDefault();
+    const title = tfTitle.value.trim();
+    if (!title) return;
+    const body = {
+      title,
+      assignee: tfAssignee.value,
+      due_date: tfDue.value || null,
+      priority: tfPriority.value,
+      images: formImages,
+    };
+    tfSave.disabled = true;
+    tfSave.textContent = "Saving…";
+    try {
+      let r;
+      if (editingId) {
+        r = await fetch("/api/tasks/" + editingId, { method: "PATCH", headers: taskHeaders(true), body: JSON.stringify(body) });
+      } else {
+        body.created_by = currentUser || null;
+        body.status = "todo";
+        r = await fetch("/api/tasks", { method: "POST", headers: taskHeaders(true), body: JSON.stringify(body) });
+      }
+      if (r.status === 401) { relock(); return; }
+      taskForm.hidden = true;
+      editingId = null;
+      await loadTasks();
+    } finally {
+      tfSave.disabled = false;
+    }
+  }
+
+  async function cycleStatus(task) {
+    const next = { todo: "doing", doing: "done", done: "todo" }[task.status] || "todo";
+    const r = await fetch("/api/tasks/" + task.id, { method: "PATCH", headers: taskHeaders(true), body: JSON.stringify({ status: next }) });
+    if (r.status === 401) { relock(); return; }
+    await loadTasks();
+  }
+
+  async function deleteTask(task) {
+    if (!confirm("Delete this task?")) return;
+    const r = await fetch("/api/tasks/" + task.id, { method: "DELETE", headers: taskHeaders() });
+    if (r.status === 401) { relock(); return; }
+    await loadTasks();
+  }
+
+  function initials(name) {
+    const p = String(name || "").trim().split(/\s+/);
+    if (p.length >= 2) return (p[0][0] + p[1][0]).toUpperCase();
+    return (p[0] || "").slice(0, 2).toUpperCase();
+  }
+  function dueDays(d) {
+    const due = new Date(String(d).slice(0, 10) + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.round((due - today) / 86400000);
+  }
+  function dueClass(d) {
+    const n = dueDays(d);
+    return n < 0 ? "over" : n === 0 ? "today" : "";
+  }
+  function dueLabel(d) {
+    const n = dueDays(d);
+    if (n < 0) return "Overdue";
+    if (n === 0) return "Due today";
+    if (n === 1) return "Tomorrow";
+    return new Date(String(d).slice(0, 10) + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
   }
   // ──────────────────────────────────────────────────────────────
 

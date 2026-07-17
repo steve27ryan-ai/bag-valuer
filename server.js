@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { randomUUID } from "crypto";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -27,6 +28,304 @@ const supabase =
     ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
     : null;
 
+// Seed staff names (used only to fill the team the first time — after that the list is
+// managed in-app and stored). Set STAFF="Steve,Aoife,Niamh" to change the initial seed.
+const STAFF = (process.env.STAFF || "Steve,Aoife,Niamh")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const STAFF_FILE = join(__dirname, "staff.local.json");
+
+function localStaffRead() {
+  try {
+    return existsSync(STAFF_FILE) ? JSON.parse(readFileSync(STAFF_FILE, "utf8")) : [];
+  } catch {
+    return [];
+  }
+}
+function localStaffWrite(a) {
+  writeFileSync(STAFF_FILE, JSON.stringify(a, null, 2));
+}
+
+// Persistent, editable team list — Supabase `staff` table in prod, local file in dev.
+// Seeds from the STAFF env the first time it's empty.
+const staffStore = {
+  async list() {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("staff")
+        .select("name")
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(error.message);
+      let names = (data || []).map((r) => r.name);
+      if (!names.length && STAFF.length) {
+        await supabase.from("staff").insert(STAFF.map((n) => ({ name: n })));
+        names = STAFF.slice();
+      }
+      return names;
+    }
+    let names = localStaffRead();
+    if (!names.length) {
+      names = STAFF.slice();
+      localStaffWrite(names);
+    }
+    return names;
+  },
+  async add(name) {
+    name = String(name || "").trim().slice(0, 80);
+    if (!name) throw new Error("Enter a name.");
+    const cur = await this.list();
+    if (cur.some((n) => n.toLowerCase() === name.toLowerCase())) return cur;
+    if (supabase) {
+      const { error } = await supabase.from("staff").insert({ name });
+      if (error) throw new Error(error.message);
+    } else {
+      const arr = localStaffRead();
+      arr.push(name);
+      localStaffWrite(arr);
+    }
+    return this.list();
+  },
+  async remove(name) {
+    if (supabase) {
+      const { error } = await supabase.from("staff").delete().eq("name", name);
+      if (error) throw new Error(error.message);
+    } else {
+      localStaffWrite(localStaffRead().filter((n) => n !== name));
+    }
+    return this.list();
+  },
+};
+
+// ── Message board ─────────────────────────────────────────────────
+// Team updates (e.g. weekly sales target). Supabase `messages` table in prod, local file in dev.
+const MSG_FILE = join(__dirname, "messages.local.json");
+function localMsgRead() {
+  try {
+    return existsSync(MSG_FILE) ? JSON.parse(readFileSync(MSG_FILE, "utf8")) : [];
+  } catch {
+    return [];
+  }
+}
+function localMsgWrite(a) {
+  writeFileSync(MSG_FILE, JSON.stringify(a, null, 2));
+}
+const msgStore = {
+  async list() {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    return localMsgRead().slice().reverse().slice(0, 50); // newest first
+  },
+  async add(text, author) {
+    text = String(text || "").trim().slice(0, 500);
+    if (!text) throw new Error("Write something first.");
+    const row = {
+      id: randomUUID(),
+      text,
+      author: (String(author || "").trim().slice(0, 80)) || null,
+      created_at: new Date().toISOString(),
+    };
+    if (supabase) {
+      const { error } = await supabase.from("messages").insert(row);
+      if (error) throw new Error(error.message);
+    } else {
+      const arr = localMsgRead();
+      arr.push(row);
+      localMsgWrite(arr);
+    }
+    return this.list();
+  },
+  async remove(id) {
+    if (supabase) {
+      const { error } = await supabase.from("messages").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    } else {
+      localMsgWrite(localMsgRead().filter((m) => m.id !== id));
+    }
+    return this.list();
+  },
+};
+
+// ── Task store ────────────────────────────────────────────────────
+// Uses Supabase when configured (shared, always-on); falls back to a local
+// JSON file so the board works fully on a dev machine with no database.
+const TASKS_FILE = join(__dirname, "tasks.local.json");
+const VALID_STATUS = ["todo", "doing", "done"];
+const VALID_PRIORITY = ["high", "med", "low"];
+
+function localRead() {
+  try {
+    return existsSync(TASKS_FILE) ? JSON.parse(readFileSync(TASKS_FILE, "utf8")) : [];
+  } catch {
+    return [];
+  }
+}
+function localWrite(arr) {
+  writeFileSync(TASKS_FILE, JSON.stringify(arr, null, 2));
+}
+
+function cleanTask(input, base) {
+  const t = { ...(base || {}) };
+  if (input.title !== undefined) t.title = String(input.title).slice(0, 300);
+  if (input.assignee !== undefined) t.assignee = String(input.assignee).slice(0, 80);
+  if (input.note !== undefined) t.note = input.note ? String(input.note).slice(0, 1000) : null;
+  if (input.due_date !== undefined) t.due_date = input.due_date || null;
+  if (input.priority !== undefined)
+    t.priority = VALID_PRIORITY.includes(input.priority) ? input.priority : "med";
+  if (input.status !== undefined)
+    t.status = VALID_STATUS.includes(input.status) ? input.status : "todo";
+  return t;
+}
+
+const MAX_TASK_IMAGES = 8;
+
+// Turn incoming task images into stored URLs. New photos arrive as data: URIs; existing ones
+// arrive as plain URLs and pass straight through. New ones are shrunk, then stored in Supabase
+// (prod) or kept inline as a compact data URI (local dev, no database).
+async function processTaskImages(images, taskId) {
+  if (!Array.isArray(images)) return [];
+  const out = [];
+  for (const item of images.slice(0, MAX_TASK_IMAGES)) {
+    if (typeof item !== "string") continue;
+    if (!item.startsWith("data:")) {
+      out.push(item); // already-stored URL — keep as-is
+      continue;
+    }
+    const m = /^data:(image\/[\w.+-]+);base64,(.+)$/i.exec(item);
+    if (!m) continue;
+    try {
+      const resized = await sharp(Buffer.from(m[2], "base64"))
+        .rotate()
+        .resize({ width: 1000, height: 1000, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 70 })
+        .toBuffer();
+      if (supabase) {
+        const path = `tasks/${taskId}/${randomUUID()}.jpg`;
+        const { error } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(path, resized, { contentType: "image/jpeg", upsert: true });
+        if (error) {
+          console.error("Task photo upload failed:", error.message);
+          continue;
+        }
+        const { data: pub } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+        if (pub && pub.publicUrl) out.push(pub.publicUrl);
+      } else {
+        out.push("data:image/jpeg;base64," + resized.toString("base64"));
+      }
+    } catch (e) {
+      console.error("Task photo processing failed:", e.message);
+    }
+  }
+  return out;
+}
+
+const taskStore = {
+  async list() {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    let arr = localRead();
+    if (!arr.length) {
+      arr = seedTasks();
+      localWrite(arr);
+    }
+    return arr;
+  },
+  async create(input, createdBy) {
+    const now = new Date().toISOString();
+    const id = randomUUID();
+    const row = cleanTask(input, {
+      id,
+      title: "Untitled task",
+      assignee: STAFF[0] || "",
+      note: null,
+      due_date: null,
+      priority: "med",
+      status: "todo",
+      created_by: createdBy || null,
+      created_at: now,
+    });
+    row.images = await processTaskImages(input.images || [], id);
+    if (supabase) {
+      const { data, error } = await supabase.from("tasks").insert(row).select().single();
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    const arr = localRead();
+    arr.push(row);
+    localWrite(arr);
+    return row;
+  },
+  async update(id, input) {
+    const patch = cleanTask(input, {});
+    if (input.images !== undefined) patch.images = await processTaskImages(input.images, id);
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("tasks")
+        .update(patch)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    const arr = localRead();
+    const i = arr.findIndex((t) => t.id === id);
+    if (i === -1) return null;
+    arr[i] = { ...arr[i], ...patch };
+    localWrite(arr);
+    return arr[i];
+  },
+  async remove(id) {
+    if (supabase) {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      return true;
+    }
+    const arr = localRead().filter((t) => t.id !== id);
+    localWrite(arr);
+    return true;
+  },
+};
+
+// A few sample tasks so the local board isn't empty while testing.
+function seedTasks() {
+  const now = new Date().toISOString();
+  const day = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  const mk = (title, assignee, priority, status, due) => ({
+    id: randomUUID(), title, assignee, priority, status, due_date: due,
+    note: null, created_by: assignee, created_at: now,
+  });
+  const [a = "Steve", b = "Aoife", c = "Niamh"] = STAFF;
+  return [
+    mk("Authenticate Chanel Boy — order #4821", a, "high", "doing", day(0)),
+    mk("Approve July consignment payouts", a, "med", "todo", day(1)),
+    mk("Reply to 3 authentication queries", b, "high", "todo", day(-1)),
+    mk("Photograph 6 LV intakes for shoot", b, "high", "doing", day(0)),
+    mk("List Gucci Marmont on Vestiaire", b, "med", "todo", day(2)),
+    mk("Steam & prep bags for window display", c, "low", "todo", day(0)),
+    mk("Update Dior Saddle price — market dropped", c, "med", "todo", day(3)),
+    mk("Pack & ship 2 sold orders", c, "low", "done", day(-1)),
+  ];
+}
+
 if (!API_KEY || API_KEY.includes("PASTE_YOUR")) {
   console.log("\n\x1b[33m⚠  No Anthropic API key found yet.\x1b[0m");
   console.log("   Open the file  .env  in this folder and paste your key after ANTHROPIC_API_KEY=");
@@ -42,12 +341,65 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024, files: MAX_PHOTOS }, // 15 MB each
 });
 
-app.use(express.json());
+app.use(express.json({ limit: "25mb" })); // room for attached task photos (base64)
 app.use(express.static(join(__dirname, "public")));
 
-// Tells the frontend whether a passcode is required, and whether history is on.
-app.get("/api/session", (req, res) => {
-  res.json({ codeRequired: !!ACCESS_CODE, historyEnabled: !!supabase });
+// Tells the frontend whether a passcode is required, whether history is on, and the staff list.
+app.get("/api/session", async (req, res) => {
+  let staff = STAFF;
+  try {
+    staff = await staffStore.list();
+  } catch (e) {
+    console.error("staff list failed:", e.message);
+  }
+  res.json({ codeRequired: !!ACCESS_CODE, historyEnabled: !!supabase, staff });
+});
+
+// Team management.
+app.get("/api/staff", requireCode, async (req, res) => {
+  try {
+    res.json({ staff: await staffStore.list() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.post("/api/staff", requireCode, async (req, res) => {
+  try {
+    res.json({ staff: await staffStore.add((req.body || {}).name) });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+app.delete("/api/staff/:name", requireCode, async (req, res) => {
+  try {
+    res.json({ staff: await staffStore.remove(req.params.name) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Message board.
+app.get("/api/messages", requireCode, async (req, res) => {
+  try {
+    res.json({ messages: await msgStore.list() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.post("/api/messages", requireCode, async (req, res) => {
+  try {
+    const b = req.body || {};
+    res.json({ messages: await msgStore.add(b.text, b.author) });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+app.delete("/api/messages/:id", requireCode, async (req, res) => {
+  try {
+    res.json({ messages: await msgStore.remove(req.params.id) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // The login screen posts the typed code here to check it.
@@ -385,6 +737,47 @@ app.get("/api/history", requireCode, async (req, res) => {
       .limit(200);
     if (error) return res.status(500).json({ error: error.message });
     res.json({ enabled: true, items: data });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Tasks API ─────────────────────────────────────────────────────
+app.get("/api/tasks", requireCode, async (req, res) => {
+  try {
+    res.json({ tasks: await taskStore.list(), staff: await staffStore.list() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/tasks", requireCode, async (req, res) => {
+  try {
+    const body = req.body || {};
+    if (!body.title || !String(body.title).trim()) {
+      return res.status(400).json({ error: "A task needs a title." });
+    }
+    const task = await taskStore.create(body, body.created_by);
+    res.json({ task });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch("/api/tasks/:id", requireCode, async (req, res) => {
+  try {
+    const task = await taskStore.update(req.params.id, req.body || {});
+    if (!task) return res.status(404).json({ error: "Task not found." });
+    res.json({ task });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete("/api/tasks/:id", requireCode, async (req, res) => {
+  try {
+    await taskStore.remove(req.params.id);
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
