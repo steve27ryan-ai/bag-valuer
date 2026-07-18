@@ -114,6 +114,11 @@
     font-family: "Jost", sans-serif; font-size: 0.85rem; color: var(--espresso);
   }
   .note-field input:focus { outline: none; border-color: var(--bronze); }
+  .seller-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .seller-row input { width: 100%; border: 1px solid var(--border); background: var(--ivory); padding: 10px 12px;
+    font-family: "Jost", sans-serif; font-size: 0.85rem; color: var(--espresso); }
+  .seller-row input:focus { outline: none; border-color: var(--bronze); }
+  @media (max-width: 640px) { .seller-row { grid-template-columns: 1fr; } }
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.9rem; border: none;
@@ -153,6 +158,19 @@
   .price-cell .v { font-family: "Cormorant Garamond", serif; font-weight: 300; font-size: 2.4rem; color: var(--espresso); line-height: 1; }
   .price-cell .vnote { font-size: 0.76rem; color: var(--stone); margin-top: 8px; }
 
+  /* Consignment split calculator */
+  .split-in { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .split-in label { font-size: 0.8rem; color: var(--stone); }
+  .split-field { font-family: "Cormorant Garamond", serif; font-size: 1.4rem; color: var(--espresso); display: inline-flex; align-items: center; gap: 4px; }
+  .split-price { font-family: "Cormorant Garamond", serif; font-size: 1.4rem; color: var(--espresso); border: none; border-bottom: 1px solid var(--bronze); background: transparent; width: 120px; padding: 2px 0; }
+  .split-price:focus { outline: none; border-bottom-color: var(--espresso); }
+  .split-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--border); }
+  .split-cell { background: var(--white); padding: 16px 18px; }
+  .split-cell .k { font-size: 0.55rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--bronze); margin-bottom: 8px; }
+  .split-cell .v { font-family: "Cormorant Garamond", serif; font-size: 1.7rem; color: var(--espresso); line-height: 1; }
+  .split-note { font-size: 0.72rem; color: var(--stone); margin-top: 12px; line-height: 1.6; }
+  @media (max-width: 640px) { .split-grid { grid-template-columns: 1fr; } }
+
   .block { background: var(--white); border-top: 2px solid var(--border); padding: 28px 34px; }
   .block h3 { font-size: 0.57rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--bronze); margin-bottom: 14px; font-weight: 400; }
   .grade { font-family: "Cormorant Garamond", serif; font-size: 1.5rem; }
@@ -162,6 +180,30 @@
   table.cond td { padding: 12px 4px; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
   table.cond td:first-child { color: var(--stone); }
   table.cond td:last-child { text-align: right; font-family: "Cormorant Garamond", serif; font-size: 1.1rem; }
+
+  /* Seller intake */
+  .intake { background: var(--espresso); color: var(--pearl); padding: 18px 22px; margin-bottom: 26px; }
+  .intake-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .intake-title { font-size: 0.62rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--bronze-pale); }
+  .intake-actions { display: flex; gap: 14px; }
+  .intake-actions .linkbtn { color: var(--bronze-pale); }
+  .intake-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .intake-meta input { font-family: "Jost"; font-size: 0.88rem; color: var(--pearl); background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15); padding: 10px 12px; }
+  .intake-meta input::placeholder { color: rgba(255,255,255,0.4); }
+  .intake-meta input:focus { outline: none; border-color: var(--bronze-pale); }
+  @media (max-width: 640px) { .intake-meta { grid-template-columns: 1fr; } }
+  .intake-item { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem; }
+  .intake-item:last-child { border-bottom: none; }
+  .intake-item .nm { flex: 1; font-family: "Cormorant Garamond", serif; font-size: 1.15rem; }
+  .intake-item .pr { color: rgba(255,255,255,0.6); font-size: 0.82rem; }
+  .intake-item .sp { color: var(--bronze-pale); font-size: 0.78rem; min-width: 74px; text-align: right; }
+  .intake-item .rm { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 1rem; line-height: 1; }
+  .intake-item .rm:hover { color: #e6a5a5; }
+  .intake-total { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.86rem; color: rgba(255,255,255,0.75); display: flex; justify-content: space-between; }
+  .intake-total strong { font-family: "Cormorant Garamond", serif; font-size: 1.4rem; color: #fff; font-weight: 400; }
+  .again-solid { background: var(--espresso) !important; color: var(--pearl) !important; border: 1px solid var(--espresso) !important; }
+  .again-solid:hover { background: var(--bronze) !important; border-color: var(--bronze) !important; }
 
   /* Message board */
   .msgboard { background: var(--pearl); border: 1px solid var(--border); border-top: 3px solid var(--bronze);
@@ -192,6 +234,14 @@
   .tab:hover { color: var(--espresso); }
 
   /* History list */
+  .hist-modes { margin-bottom: 16px; }
+  .hist-toolbar { display: flex; gap: 10px; margin-bottom: 16px; }
+  .hist-toolbar input { flex: 1; font-family: "Jost"; font-size: 0.9rem; color: var(--espresso);
+    border: 1px solid var(--border); background: var(--white); padding: 11px 13px; }
+  .hist-toolbar input:focus { outline: none; border-color: var(--bronze); }
+  .hist-export { background: none; border: 1px solid var(--bronze); color: var(--bronze-deep); cursor: pointer;
+    font-family: "Jost"; font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 0 18px; white-space: nowrap; }
+  .hist-export:hover { background: var(--bronze); color: var(--white); }
   .hist-status { text-align: center; color: var(--stone); font-size: 0.85rem; padding: 40px; }
   .hist-list { display: flex; flex-direction: column; gap: 2px; }
   .hist-card { display: flex; gap: 18px; background: var(--white); border: 1px solid var(--border);
@@ -355,7 +405,7 @@
 
   .disclaimer { margin-top: 28px; font-size: 0.72rem; color: var(--stone); text-align: center; line-height: 1.7; }
   .saved-note { text-align: center; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: #2f6b3d; margin-top: 10px; }
-  .again { text-align: center; margin-top: 24px; }
+  .again { text-align: center; margin-top: 24px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   .again button { background: none; border: 1px solid var(--bronze); color: var(--bronze-deep); padding: 0.8rem 2rem; font-family: "Jost"; font-size: 0.66rem; letter-spacing: 0.22em; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
   .again button:hover { background: var(--bronze); color: var(--white); }
 
@@ -399,6 +449,23 @@
   </nav>
 
   <div id="valuationView">
+  <section class="intake" id="intakeBar" hidden>
+    <div class="intake-head">
+      <span class="intake-title">Seller intake · <span id="intakeCount">0</span></span>
+      <div class="intake-actions">
+        <button class="linkbtn" id="intakeSave" type="button">Save to history</button>
+        <button class="linkbtn" id="intakePrint" type="button">Print slip</button>
+        <button class="linkbtn" id="intakeClear" type="button">Clear</button>
+      </div>
+    </div>
+    <div class="intake-meta">
+      <input id="consignorName" placeholder="Consignor name" maxlength="120" autocomplete="off" />
+      <input id="consignorAcct" placeholder="Account number" maxlength="60" autocomplete="off" />
+    </div>
+    <div class="intake-list" id="intakeList"></div>
+    <div class="intake-total" id="intakeTotal"></div>
+  </section>
+
   <div class="card">
     <label class="drop" id="drop">
       <input type="file" id="file" accept="image/*" multiple />
@@ -409,14 +476,21 @@
 
     <div class="preview-wrap" id="previewWrap">
       <div class="thumbs" id="thumbs"></div>
-      <p class="angle-hint">Tip: add several angles of the <em>same</em> bag — front, hardware close-up, date/serial stamp, interior, base &amp; corners. More angles = a sharper ID and condition read.</p>
+      <p class="angle-hint">Tip: add several angles of the <em>same</em> item, plus its key detail shots — a bag's date stamp &amp; interior, a watch's caseback &amp; serial, jewellery hallmarks, a shoe's insole &amp; sole. More angles = a sharper ID, condition and authenticity read.</p>
+      <div class="note-field">
+        <label>Consignor (optional)</label>
+        <div class="seller-row">
+          <input id="upConsignor" placeholder="Seller name" maxlength="120" autocomplete="off" />
+          <input id="upAcct" placeholder="Account number" maxlength="60" autocomplete="off" />
+        </div>
+      </div>
       <div class="note-field">
         <label>Anything you already know? (optional)</label>
-        <input id="note" placeholder="e.g. Chanel, medium, bought 2019 — or leave blank" />
+        <input id="note" placeholder="e.g. Omega Seamaster, box &amp; papers — or leave blank" />
       </div>
     </div>
 
-    <button class="btn" id="go" disabled>Value this bag</button>
+    <button class="btn" id="go" disabled>Value this item</button>
   </div>
 
   <div class="status" id="status">
@@ -431,6 +505,14 @@
   </div><!-- /valuationView -->
 
   <div id="historyView" hidden>
+    <div class="seg hist-modes" id="histModes">
+      <button class="seg-btn active" data-m="valuations" type="button">Valuations</button>
+      <button class="seg-btn" data-m="intakes" type="button">Intakes</button>
+    </div>
+    <div class="hist-toolbar" id="histToolbar" hidden>
+      <input id="histSearch" placeholder="Search brand, model, category…" autocomplete="off" />
+      <button class="hist-export" id="histExport" type="button">Export CSV</button>
+    </div>
     <div class="hist-status" id="histStatus">Loading…</div>
     <div class="hist-list" id="histList"></div>
     <div class="hist-detail" id="histDetail" hidden>
@@ -512,6 +594,11 @@
   let accessCode = localStorage.getItem(CODE_KEY) || "";
   let historyEnabled = false;
   let staffList = [];
+  let currentValuation = null; // last-rendered valuation (for the print sheet)
+  let histItems = [];          // loaded History items (for search + export)
+  const INTAKE_KEY = "bagvaluer_intake";
+  let intake = [];
+  try { intake = JSON.parse(localStorage.getItem(INTAKE_KEY) || "[]"); } catch { intake = []; }
 
   async function initGate() {
     let session;
@@ -643,7 +730,7 @@
     }
     previewWrap.classList.toggle("show", chosen.length > 0);
     go.disabled = chosen.length === 0;
-    go.textContent = chosen.length > 1 ? "Value this bag (" + chosen.length + " photos)" : "Value this bag";
+    go.textContent = chosen.length > 1 ? "Value this item (" + chosen.length + " photos)" : "Value this item";
   }
 
   const steps = [
@@ -707,6 +794,234 @@
     const sym = { GBP: "£", USD: "$", EUR: "€" }[cur] || "";
     return sym + Number(v).toLocaleString();
   }
+
+  // ── Consignment split calculator ──────────────────────────────
+  // Siopaella's commission by sale price. Seller receives the remainder.
+  function splitFor(price) {
+    if (price < 250) return { code: "A", pct: 60 };
+    if (price < 650) return { code: "H", pct: 50 };
+    if (price < 750) return { code: "I", pct: 40 };
+    if (price < 4000) return { code: "M", pct: 30 };
+    return { code: "R", pct: 20 };
+  }
+  function splitCalcHtml(d) {
+    const re = d.resale_estimate || {};
+    const start = typeof re.high === "number" ? re.high : (typeof re.low === "number" ? re.low : null);
+    if (start === null) return "";
+    return (
+      '<div class="block split-calc"><h3>Consignment split</h3>' +
+      '<div class="split-in"><label>If it sells for</label>' +
+      '<span class="split-field">€ <input type="number" class="split-price" min="0" step="10" value="' + start + '" oninput="recalcSplit(this)" /></span></div>' +
+      '<div class="split-grid">' +
+        '<div class="split-cell"><div class="k">Split</div><div class="v split-tier">—</div></div>' +
+        '<div class="split-cell"><div class="k">Siopaella keeps</div><div class="v split-ours">—</div></div>' +
+        '<div class="split-cell"><div class="k">Seller receives</div><div class="v split-seller">—</div></div>' +
+      "</div>" +
+      '<p class="split-note">Under €250 = 60% (A) · €250–649 = 50% (H) · €650–749 = 40% (I) · €750–3,999 = 30% (M) · €4,000+ = 20% (R)</p>' +
+      "</div>"
+    );
+  }
+  window.recalcSplit = function (input) {
+    const panel = input.closest(".split-calc");
+    if (!panel) return;
+    const price = Math.max(0, Math.round(Number(input.value) || 0));
+    const s = splitFor(price);
+    const ours = Math.round((price * s.pct) / 100);
+    panel.querySelector(".split-tier").textContent = s.code + " · " + s.pct + "%";
+    panel.querySelector(".split-ours").textContent = "€" + ours.toLocaleString();
+    panel.querySelector(".split-seller").textContent = "€" + (price - ours).toLocaleString();
+  };
+  function wireSplit(container) {
+    const inp = container.querySelector(".split-price");
+    if (inp) window.recalcSplit(inp);
+  }
+
+  // ── Consignment slip (Print / Save PDF) ───────────────────────
+  // Reads the sale price currently set in the split calculator of a result container.
+  function currentSplitPrice() {
+    const inp = document.querySelector("#results .split-price") || document.querySelector("#histResults .split-price");
+    return inp ? Math.max(0, Math.round(Number(inp.value) || 0)) : null;
+  }
+  function lineFor(name, price) {
+    if (price == null) return { name, price: null };
+    const s = splitFor(price);
+    const ours = Math.round((price * s.pct) / 100);
+    return { name, price, code: s.code, pct: s.pct, ours, seller: price - ours };
+  }
+  // Build & print a slip for one OR many items — just names, prices and splits.
+  function printSlip(title, lines, meta) {
+    meta = meta || {};
+    const esc = escapeHtml;
+    const field = (v) => v ? esc(v) : '<span class="blank"></span>';
+    const fmt = (n) => (n == null ? "—" : "€" + Number(n).toLocaleString());
+    const dateStr = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+    const body = lines.map((l) =>
+      l.price == null
+        ? "<tr><td>" + esc(l.name) + "</td><td></td><td></td><td></td></tr>"
+        : "<tr><td>" + esc(l.name) + "</td><td>" + fmt(l.price) + "</td><td>" + l.code + " · " + l.pct + "%</td><td class='pay'>" + fmt(l.seller) + "</td></tr>"
+    ).join("");
+    const totSale = lines.reduce((a, l) => a + (l.price || 0), 0);
+    const totOurs = lines.reduce((a, l) => a + (l.ours || 0), 0);
+    const totSeller = lines.reduce((a, l) => a + (l.seller || 0), 0);
+    const totalsRow = lines.length > 1
+      ? "<tr class='tot'><td>Total · " + lines.length + " items</td><td>" + fmt(totSale) + "</td><td>we keep " + fmt(totOurs) + "</td><td class='pay'>" + fmt(totSeller) + "</td></tr>"
+      : "";
+    const win = window.open("", "_blank");
+    if (!win) { alert("Please allow pop-ups to open the printable slip."); return; }
+    win.document.write(
+      '<!doctype html><html><head><meta charset="utf-8"><title>' + esc(title) + '</title><style>' +
+      '*{box-sizing:border-box}body{font-family:Georgia,"Times New Roman",serif;color:#1E1712;margin:0;padding:40px;max-width:640px}' +
+      '.eyebrow{font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#9E7E5A}' +
+      'h1{font-weight:normal;font-size:28px;margin:6px 0 2px}.date{color:#6B5F55;font-size:12px;margin-bottom:18px}' +
+      'table{width:100%;border-collapse:collapse}th{font-family:Arial,sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#9E7E5A;text-align:left;padding:0 6px 8px;border-bottom:1px solid #9E7E5A}' +
+      'td{padding:11px 6px;border-bottom:1px solid #E8E0D5;font-size:15px;vertical-align:top}td.pay{font-weight:bold;text-align:right}th.pay{text-align:right}' +
+      'tr.tot td{border-top:2px solid #9E7E5A;border-bottom:none;font-size:16px;padding-top:12px}' +
+      '.cons{display:flex;gap:40px;margin:0 0 18px}.cons div{font-size:14px}.cons .ml{font-family:Arial,sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#9E7E5A;display:block;margin-bottom:3px}' +
+      '.blank{display:inline-block;min-width:150px;border-bottom:1px solid #1E1712;height:16px}' +
+      '.sign{display:flex;gap:40px;margin-top:46px}.sign div{flex:1;border-top:1px solid #1E1712;padding-top:6px;font-family:Arial,sans-serif;font-size:11px;color:#6B5F55}' +
+      '.foot{font-size:10px;color:#8a8378;margin-top:24px;line-height:1.6}' +
+      '@media print{body{padding:12mm}}</style></head><body>' +
+      '<div class="eyebrow">Siopaella &middot; Designer Exchange</div>' +
+      '<h1>' + esc(title) + "</h1>" +
+      '<div class="date">' + esc(dateStr) + "</div>" +
+      '<div class="cons"><div><span class="ml">Consignor</span>' + field(meta.consignor) + "</div>" +
+        '<div><span class="ml">Account no.</span>' + field(meta.account) + "</div></div>" +
+      "<table><thead><tr><th>Item</th><th>Sale price</th><th>Split</th><th class='pay'>Seller receives</th></tr></thead>" +
+      "<tbody>" + body + totalsRow + "</tbody></table>" +
+      '<div class="sign"><div>Seller signature</div><div>Staff · date</div></div>' +
+      '<div class="foot">Prices are estimates pending sale. Consignment split: under €250 = 60% · €250–649 = 50% · €650–749 = 40% · €750–3,999 = 30% · €4,000+ = 20% to Siopaella.</div>' +
+      "</body></html>"
+    );
+    win.document.close();
+    win.focus();
+    setTimeout(function () { win.print(); }, 350);
+  }
+  window.printValuation = function () {
+    const d = currentValuation;
+    if (!d) return;
+    const name = [d.brand, d.model].filter(Boolean).join(" ") || "Item";
+    printSlip("Valuation", [lineFor(name, currentSplitPrice())]);
+  };
+  window.printIntake = function () {
+    if (!intake.length) return;
+    printSlip("Seller intake", intake.slice(), intakeMeta());
+  };
+
+  // ── Seller intake (accumulate multiple items) ─────────────────
+  const intakeBar = document.getElementById("intakeBar");
+  const intakeList = document.getElementById("intakeList");
+  const intakeCount = document.getElementById("intakeCount");
+  const intakeTotal = document.getElementById("intakeTotal");
+  const consignorName = document.getElementById("consignorName");
+  const consignorAcct = document.getElementById("consignorAcct");
+  const upConsignor = document.getElementById("upConsignor"); // same fields, on the upload card
+  const upAcct = document.getElementById("upAcct");
+  const META_KEY = "bagvaluer_intake_meta";
+
+  function intakeMeta() {
+    return { consignor: (consignorName.value || "").trim(), account: (consignorAcct.value || "").trim() };
+  }
+  function saveMeta() {
+    try { localStorage.setItem(META_KEY, JSON.stringify(intakeMeta())); } catch (e) {}
+  }
+  // Keep the upload-card and intake-bar consignor fields in sync (update the OTHER pair only).
+  function mirrorConsignor(source) {
+    if (source === "up") { consignorName.value = upConsignor.value; consignorAcct.value = upAcct.value; }
+    else { upConsignor.value = consignorName.value; upAcct.value = consignorAcct.value; }
+    saveMeta();
+  }
+  function setConsignor(name, acct) {
+    consignorName.value = name; upConsignor.value = name;
+    consignorAcct.value = acct; upAcct.value = acct;
+    saveMeta();
+  }
+  try {
+    const m = JSON.parse(localStorage.getItem(META_KEY) || "{}");
+    setConsignor(m.consignor || "", m.account || "");
+  } catch (e) {}
+  consignorName.oninput = () => mirrorConsignor("bar");
+  consignorAcct.oninput = () => mirrorConsignor("bar");
+  upConsignor.oninput = () => mirrorConsignor("up");
+  upAcct.oninput = () => mirrorConsignor("up");
+  document.getElementById("intakePrint").onclick = () => window.printIntake();
+  document.getElementById("intakeSave").onclick = saveIntakeToHistory;
+  document.getElementById("intakeClear").onclick = () => {
+    if (!intake.length || confirm("Clear this seller's intake?")) {
+      intake = [];
+      setConsignor("", "");
+      saveIntake();
+      renderIntake();
+    }
+  };
+
+  async function saveIntakeToHistory() {
+    if (!intake.length) return;
+    const btn = document.getElementById("intakeSave");
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = "Saving…";
+    try {
+      const meta = intakeMeta();
+      const r = await fetch("/api/intakes", {
+        method: "POST",
+        headers: taskHeaders(true),
+        body: JSON.stringify({
+          consignor_name: meta.consignor,
+          account_number: meta.account,
+          items: intake,
+          created_by: currentUser || null,
+        }),
+      });
+      if (r.status === 401) { relock(); return; }
+      if (r.ok) {
+        btn.textContent = "Saved ✓";
+        setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1500);
+      } else {
+        btn.textContent = orig;
+        btn.disabled = false;
+      }
+    } catch (e) {
+      btn.textContent = orig;
+      btn.disabled = false;
+    }
+  }
+
+  function saveIntake() { try { localStorage.setItem(INTAKE_KEY, JSON.stringify(intake)); } catch (e) {} }
+
+  window.addToIntake = function (btn) {
+    if (!currentValuation) return;
+    const price = currentSplitPrice();
+    const name = [currentValuation.brand, currentValuation.model].filter(Boolean).join(" ") || "Item";
+    intake.push(lineFor(name, price == null ? 0 : price));
+    saveIntake();
+    renderIntake();
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = "Added ✓";
+      btn.disabled = true;
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1400);
+    }
+  };
+
+  window.removeIntakeItem = function (i) { intake.splice(i, 1); saveIntake(); renderIntake(); };
+
+  function renderIntake() {
+    intakeBar.hidden = intake.length === 0;
+    if (!intake.length) return;
+    intakeCount.textContent = intake.length + (intake.length === 1 ? " item" : " items");
+    intakeList.innerHTML = intake.map((l, i) =>
+      '<div class="intake-item"><span class="nm">' + escapeHtml(l.name) + "</span>" +
+      '<span class="pr">€' + Number(l.price || 0).toLocaleString() + "</span>" +
+      '<span class="sp">' + (l.code || "—") + " · seller €" + Number(l.seller || 0).toLocaleString() + "</span>" +
+      '<button class="rm" type="button" aria-label="Remove" onclick="removeIntakeItem(' + i + ')">×</button></div>'
+    ).join("");
+    const totSale = intake.reduce((a, l) => a + (l.price || 0), 0);
+    const totSeller = intake.reduce((a, l) => a + (l.seller || 0), 0);
+    intakeTotal.innerHTML =
+      "<span>Total sale €" + totSale.toLocaleString() + "</span>" +
+      "<span>Seller receives <strong>€" + totSeller.toLocaleString() + "</strong></span>";
+  }
+  renderIntake();
 
   function buildResults(payload, opts) {
     opts = opts || {};
@@ -774,7 +1089,7 @@
       authHtml =
         '<div class="block"><h3>Authenticity screening</h3>' +
         '<div class="auth-warn">⚠ This is a screening aid, <strong>not proof of authenticity</strong>. A good fake can pass a photo check. ' +
-        "Always have a bag professionally authenticated before you buy or resell it.</div>" +
+        "Always have an item professionally authenticated before you buy or resell it.</div>" +
         '<div class="auth-head"><span class="auth-badge ' + cls + '">' + headline + "</span>" +
           (tone === "strong" && a.confidence ? '<span class="auth-conf">Confidence: ' + escapeHtml(a.confidence) + "</span>" : "") +
         "</div>" +
@@ -801,7 +1116,7 @@
 
     return (
       '<div class="headline">' +
-        '<div class="brand">' + escapeHtml(d.brand || "Unidentified") + "</div>" +
+        '<div class="brand">' + escapeHtml([d.category, d.brand].filter(Boolean).join(" · ") || "Unidentified") + "</div>" +
         '<div class="model">' + escapeHtml(d.model || "Model not determined") + "</div>" +
         (metaBits ? '<div class="meta">' + metaBits + "</div>" : "") +
         (d.identification_confidence
@@ -821,6 +1136,8 @@
           money(d.resale_estimate && d.resale_estimate.high, cur) + "</div>" +
         "</div>" +
       "</div>" +
+
+      splitCalcHtml(d) +
 
       '<div class="block"><h3>Condition</h3><div class="grade">' +
         escapeHtml(d.condition_grade || "—") + "</div>" +
@@ -854,12 +1171,18 @@
 
       (opts.savedId ? '<p class="saved-note">✓ Saved to History</p>' : "") +
 
-      (opts.showReset ? '<div class="again"><button onclick="reset()">Value another bag</button></div>' : "")
+      '<div class="again">' +
+        (opts.showReset ? '<button type="button" class="again-solid" onclick="addToIntake(this)">+ Add to seller intake</button>' : "") +
+        '<button type="button" class="again-outline" onclick="printValuation()">Print / Save PDF</button>' +
+        (opts.showReset ? '<button onclick="reset()">Value another item</button>' : "") +
+      "</div>"
     );
   }
 
   function render(payload) {
+    currentValuation = payload.data || null;
     results.innerHTML = buildResults(payload, { showReset: true, savedId: payload.savedId });
+    wireSplit(results);
     results.classList.add("show");
     results.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -872,7 +1195,7 @@
     results.classList.remove("show");
     note.value = "";
     go.disabled = true;
-    go.textContent = "Value this bag";
+    go.textContent = "Value this item";
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   window.reset = reset;
@@ -889,6 +1212,12 @@
   const histResults = document.getElementById("histResults");
   const histPhotos = document.getElementById("histPhotos");
   const histBack = document.getElementById("histBack");
+  const histToolbar = document.getElementById("histToolbar");
+  const histSearch = document.getElementById("histSearch");
+  const histExport = document.getElementById("histExport");
+  const histModes = document.getElementById("histModes");
+  let histMode = "valuations";
+  let intakeRecords = [];
 
   function setupTabs() {
     tabsNav.hidden = false; // Tasks is always available, so the nav always shows
@@ -896,9 +1225,30 @@
     tabValue.onclick = () => showTab("value");
     tabHistory.onclick = () => showTab("history");
     tabTasks.onclick = () => showTab("tasks");
-    histBack.onclick = () => { histDetail.hidden = true; histList.hidden = false; };
+    histBack.onclick = () => {
+      histDetail.hidden = true;
+      histList.hidden = false;
+      histToolbar.hidden = !histItems.length;
+    };
+    histSearch.oninput = filterHistory;
+    histExport.onclick = exportHistoryCsv;
+    histModes.querySelectorAll(".seg-btn").forEach((btn) => {
+      btn.onclick = () => {
+        histMode = btn.dataset.m;
+        histModes.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === btn));
+        loadHistoryMode();
+      };
+    });
     setupTasks();
     setupMessages();
+  }
+
+  function loadHistoryMode() {
+    histSearch.value = "";
+    histSearch.placeholder = histMode === "intakes" ? "Search consignor name…" : "Search brand, model, category…";
+    histExport.hidden = histMode === "intakes";
+    if (histMode === "intakes") loadIntakes();
+    else loadHistory();
   }
 
   function showTab(which) {
@@ -911,7 +1261,7 @@
     valuationView.hidden = !isValue;
     historyView.hidden = !isHist;
     tasksView.hidden = !isTasks;
-    if (isHist) loadHistory();
+    if (isHist) loadHistoryMode();
     if (isTasks) openTasks();
   }
 
@@ -927,14 +1277,108 @@
     histList.hidden = false;
     histStatus.hidden = false;
     histStatus.textContent = "Loading…";
+    histToolbar.hidden = true;
     try {
       const r = await fetch("/api/history", { headers: accessCode ? { "x-access-code": accessCode } : {} });
       if (r.status === 401) { relock(); return; }
       const payload = await r.json();
-      renderHistoryList(payload.items || []);
+      histItems = payload.items || [];
+      histSearch.value = "";
+      histToolbar.hidden = !histItems.length;
+      renderHistoryList(histItems);
     } catch (e) {
       histStatus.textContent = "Couldn't load history.";
     }
+  }
+
+  async function loadIntakes() {
+    histDetail.hidden = true;
+    histList.hidden = false;
+    histStatus.hidden = false;
+    histStatus.textContent = "Loading…";
+    histToolbar.hidden = true;
+    try {
+      const r = await fetch("/api/intakes", { headers: accessCode ? { "x-access-code": accessCode } : {} });
+      if (r.status === 401) { relock(); return; }
+      const payload = await r.json();
+      intakeRecords = payload.intakes || [];
+      histToolbar.hidden = !intakeRecords.length;
+      renderIntakeList(intakeRecords);
+    } catch (e) {
+      histStatus.textContent = "Couldn't load intakes.";
+    }
+  }
+
+  function renderIntakeList(items) {
+    if (!items.length) {
+      histList.innerHTML = "";
+      histStatus.hidden = false;
+      histStatus.textContent = "No saved intakes yet.";
+      return;
+    }
+    histStatus.hidden = true;
+    histList.innerHTML = "";
+    items.forEach((it) => {
+      const n = (it.items || []).length;
+      const card = document.createElement("div");
+      card.className = "hist-card";
+      card.innerHTML =
+        '<div class="hist-thumb ph">◈</div>' +
+        '<div class="hist-main">' +
+          '<div class="hist-brand">Intake · ' + n + (n === 1 ? " item" : " items") + "</div>" +
+          '<div class="hist-model">' + escapeHtml(it.consignor_name || "No name") + "</div>" +
+          '<div class="hist-meta">' + escapeHtml(fmtDate(it.created_at)) +
+            (it.account_number ? " · acct " + escapeHtml(it.account_number) : "") + "</div>" +
+        "</div>" +
+        '<div class="hist-right">' +
+          '<div class="hist-plabel">Seller gets</div>' +
+          '<div class="hist-price">€' + Number(it.total_seller || 0).toLocaleString() + "</div>" +
+          '<div class="hist-auth" style="color:var(--bronze-deep)">Reprint slip ›</div>' +
+        "</div>";
+      card.onclick = () => printSlip("Seller intake", it.items || [], { consignor: it.consignor_name, account: it.account_number });
+      histList.appendChild(card);
+    });
+  }
+
+  function filterHistory() {
+    const q = (histSearch.value || "").toLowerCase().trim();
+    if (histMode === "intakes") {
+      const list = !q ? intakeRecords : intakeRecords.filter((it) => (it.consignor_name || "").toLowerCase().includes(q));
+      renderIntakeList(list);
+      if (!list.length) { histStatus.hidden = false; histStatus.textContent = "No matches."; }
+      return;
+    }
+    const list = !q ? histItems : histItems.filter((it) => {
+      const cat = (it.data && it.data.category) || "";
+      return [it.brand, it.model, cat, it.condition_grade].filter(Boolean).join(" ").toLowerCase().includes(q);
+    });
+    renderHistoryList(list);
+    if (!list.length) { histStatus.hidden = false; histStatus.textContent = "No matches."; }
+  }
+
+  function csvCell(v) {
+    return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  }
+  function exportHistoryCsv() {
+    if (!histItems.length) return;
+    const head = ["Date", "Category", "Brand", "Model", "Condition", "RRP (EUR)", "Resale low", "Resale high", "Authenticity"];
+    const rows = histItems.map((it) => [
+      it.created_at ? new Date(it.created_at).toLocaleString() : "",
+      (it.data && it.data.category) || "",
+      it.brand || "", it.model || "", it.condition_grade || "",
+      it.rrp_amount != null ? it.rrp_amount : "",
+      it.resale_low != null ? it.resale_low : "",
+      it.resale_high != null ? it.resale_high : "",
+      it.authenticity_assessment || "",
+    ]);
+    const csv = [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "siopaella-valuations.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function fmtDate(s) {
@@ -960,7 +1404,7 @@
     if (!items.length) {
       histList.innerHTML = "";
       histStatus.hidden = false;
-      histStatus.textContent = "No valuations saved yet. Value a bag and it'll appear here.";
+      histStatus.textContent = "No valuations saved yet. Value an item and it'll appear here.";
       return;
     }
     histStatus.hidden = true;
@@ -997,10 +1441,13 @@
   function openDetail(it) {
     histList.hidden = true;
     histStatus.hidden = true;
+    histToolbar.hidden = true;
     histDetail.hidden = false;
     histPhotos.innerHTML = (it.photo_urls || [])
       .map((u) => '<img src="' + escapeHtml(u) + '" alt="">').join("");
+    currentValuation = it.data || null;
     histResults.innerHTML = buildResults({ data: it.data }, { showReset: false });
+    wireSplit(histResults);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   // ──────────────────────────────────────────────────────────────

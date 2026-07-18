@@ -153,6 +153,64 @@ const msgStore = {
   },
 };
 
+// ── Seller intakes (saved consignment slips) ──────────────────────
+const INTAKES_FILE = join(__dirname, "intakes.local.json");
+function localIntakesRead() {
+  try {
+    return existsSync(INTAKES_FILE) ? JSON.parse(readFileSync(INTAKES_FILE, "utf8")) : [];
+  } catch {
+    return [];
+  }
+}
+function localIntakesWrite(a) {
+  writeFileSync(INTAKES_FILE, JSON.stringify(a, null, 2));
+}
+const intakeStore = {
+  async list() {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("intakes")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    return localIntakesRead().slice().reverse().slice(0, 200);
+  },
+  async create({ consignor_name, account_number, items, created_by }) {
+    const clean = (Array.isArray(items) ? items : []).slice(0, 100).map((it) => ({
+      name: String((it && it.name) || "").slice(0, 300),
+      price: Number(it && it.price) || 0,
+      code: String((it && it.code) || "").slice(0, 4),
+      pct: Number(it && it.pct) || 0,
+      ours: Number(it && it.ours) || 0,
+      seller: Number(it && it.seller) || 0,
+    }));
+    if (!clean.length) throw new Error("No items to save.");
+    const row = {
+      id: randomUUID(),
+      consignor_name: (consignor_name || "").toString().trim().slice(0, 120) || null,
+      account_number: (account_number || "").toString().trim().slice(0, 60) || null,
+      items: clean,
+      total_sale: clean.reduce((a, i) => a + i.price, 0),
+      total_ours: clean.reduce((a, i) => a + i.ours, 0),
+      total_seller: clean.reduce((a, i) => a + i.seller, 0),
+      created_by: created_by || null,
+      created_at: new Date().toISOString(),
+    };
+    if (supabase) {
+      const { error } = await supabase.from("intakes").insert(row);
+      if (error) throw new Error(error.message);
+    } else {
+      const arr = localIntakesRead();
+      arr.push(row);
+      localIntakesWrite(arr);
+    }
+    return row;
+  },
+};
+
 // ── Task store ────────────────────────────────────────────────────
 // Uses Supabase when configured (shared, always-on); falls back to a local
 // JSON file so the board works fully on a dev machine with no database.
@@ -352,7 +410,7 @@ app.get("/api/session", async (req, res) => {
   } catch (e) {
     console.error("staff list failed:", e.message);
   }
-  res.json({ codeRequired: !!ACCESS_CODE, historyEnabled: !!supabase, staff });
+  res.json({ codeRequired: !!ACCESS_CODE, historyEnabled: true, staff });
 });
 
 // Team management.
@@ -402,6 +460,22 @@ app.delete("/api/messages/:id", requireCode, async (req, res) => {
   }
 });
 
+// Seller intakes (saved consignment slips).
+app.get("/api/intakes", requireCode, async (req, res) => {
+  try {
+    res.json({ intakes: await intakeStore.list() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.post("/api/intakes", requireCode, async (req, res) => {
+  try {
+    res.json({ intake: await intakeStore.create(req.body || {}) });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 // The login screen posts the typed code here to check it.
 app.post("/api/check", (req, res) => {
   if (!ACCESS_CODE) return res.json({ ok: true });
@@ -417,73 +491,80 @@ function requireCode(req, res, next) {
   return res.status(401).json({ error: "Wrong or missing passcode. Please sign in again." });
 }
 
-// The instruction that turns Claude into a handbag appraiser.
-const SYSTEM_PROMPT = `You are an expert authenticator and appraiser of designer handbags for a
-high-end resale business. You know the current secondhand market intimately — Vestiaire Collective,
-Fashionphile, The RealReal, Rebag, Sotheby's, and auction results.
+// The instruction that turns Claude into a luxury-resale appraiser.
+const SYSTEM_PROMPT = `You are an expert authenticator and appraiser of pre-owned LUXURY & DESIGNER
+items for a high-end resale business. You cover every category the business resells:
+HANDBAGS & small leather goods, WATCHES, FINE & COSTUME JEWELLERY, SHOES/TRAINERS, READY-TO-WEAR
+CLOTHING, and ACCESSORIES (sunglasses, belts, scarves, wallets). You know the current secondhand
+market intimately across all of them — Vestiaire Collective, Fashionphile, The RealReal, Rebag,
+Chrono24, WatchCharts, StockX, GOAT, Grailed, 1stDibs, and auction results (Sotheby's, Christie's).
 
-You will be given one OR MORE photos of the SAME handbag from different angles (e.g. front,
-hardware close-up, date/serial stamp, interior, base/corners). Consider all of them together —
-later photos often confirm the model, authenticity stamp, or reveal wear not visible in the first.
-Your job:
+You will be given one OR MORE photos of the SAME item from different angles. Consider them together —
+later photos often confirm the model, reveal a stamp/serial, or show wear not visible in the first.
+Work out the CATEGORY first (handbag / watch / jewellery / shoes / clothing / accessory), then apply
+the category-appropriate checks below. Your job:
 
-1. IDENTIFY the bag as precisely as the photos allow: brand, model/line, size/variant,
-   hardware colour, material/leather type, and colour. Use any visible stamps, date codes or
-   serial numbers. If uncertain between options, say so and give your best guess with a confidence
-   level. More angles should raise your confidence.
-   ALWAYS use web_search to check the brand's OFFICIAL website to confirm the exact current model
-   name, spelling and specification — and prefer the IRELAND (IE) store where one exists (e.g.
-   louisvuitton.com "eng-ie", and the Irish/IE storefronts for Chanel, Hermès, Gucci, Dior, Prada,
-   etc.). If the brand has no dedicated Irish site, use its nearest euro-zone / EU site. Treat the
-   official site as the source of truth for the model name over resale listings or blogs.
-2. ASSESS CONDITION from what is visible across all photos (corners, hardware, leather, handles,
-   interior if shown). Grade it on the standard resale scale: Pristine / Excellent / Very Good /
-   Good / Fair. Note the specific wear you can see and which photo shows it. Be honest — condition
-   drives price.
+1. IDENTIFY the item as precisely as the photos allow. Give: category, brand, model/line/reference,
+   and the key specs for its type —
+     • Handbag: model/line, size/variant, material/leather, colour, hardware colour.
+     • Watch: model + reference number, case size & material, dial colour, bracelet/strap, movement
+       if determinable.
+     • Jewellery: piece type, metal (and purity — 18k/750, 14k/585, platinum/PT950, silver/925),
+       gemstones (type & approx carat), any maker's mark/hallmark.
+     • Shoes: model, size, material/colourway.
+     • Clothing: garment type, size, material, collection/season if identifiable.
+   Use any visible stamps, serial/reference numbers, hallmarks or date codes. If uncertain, say so
+   and give a best guess with a confidence level. ALWAYS use web_search to check the brand's OFFICIAL
+   website to confirm the exact model name/reference and spec — prefer the IRELAND (IE) or nearest
+   euro-zone/EU store. Treat the official site as the source of truth over resale listings or blogs.
+2. ASSESS CONDITION from all photos, graded on the standard resale scale: Pristine / Excellent /
+   Very Good / Good / Fair. Note the specific, category-appropriate wear you can see and which photo
+   shows it (bag: corners/handles/hardware; watch: case/crystal/bracelet scratches, dial/lume;
+   jewellery: scratches, stone security, clasp; shoes: soles/creasing; clothing: pilling/marks/holes).
+   Be honest — condition drives price.
 3. AUTHENTICITY SCREENING — adversarial, and NEVER a guarantee. Approach this as a SCEPTIC whose
-   job is to find evidence the bag is FAKE, not to confirm it is real. Assume it could be a
-   high-quality counterfeit. The most-faked models (Chanel Classic/Timeless Flap, Hermès
-   Birkin/Kelly, Louis Vuitton, Dior, Gucci, Goyard, YSL) are routinely replicated well enough to
-   pass casual inspection — so a correct-looking logo, shape, quilting or monogram is NOT evidence
-   of authenticity; those are the EASIEST things to fake. Do not be reassured by them.
+   job is to find evidence the item is FAKE, not to confirm it is real. Assume it could be a
+   high-quality counterfeit — designer goods across ALL these categories are replicated well enough
+   to pass casual inspection, so a correct-looking logo, shape, monogram, dial or hallmark is NOT
+   evidence of authenticity; those are the EASIEST things to fake. Do not be reassured by them.
    - GROUND YOUR CHECK: use web_search to pull a CURRENT authentication / "real vs fake" guide for
-     THIS exact brand and model (e.g. "how to authenticate Chanel Classic Flap real vs fake serial
-     hologram stitching", "Louis Vuitton date code fake tells"). Extract the SPECIFIC checkpoints
-     professional authenticators use and test the photos against each one: serial sticker / date
-     code / microchip — format, font, spacing, hologram, and whether the number/era matches the
-     leather and hardware; heat-stamp and hardware engraving — font, depth, evenness, spelling;
-     stitch count and quilting alignment across seams; hardware weight, screws and finish; interior
-     stamp, lining and tag; overall symmetry.
-   - For EACH checkpoint report CONSISTENT, INCONSISTENT (a red flag), or NOT VISIBLE. A
-     counterfeit's whole purpose is to copy the shape, logo, sticker LAYOUT, monogram and quilting,
-     so "the format/layout looks like a genuine one" is NOT a positive signal and must NOT be marked
-     CONSISTENT. Only mark a checkpoint CONSISTENT when the photo clearly shows a SPECIFIC,
-     hard-to-fake genuine trait; if the shot merely shows the general look, mark it NOT VISIBLE.
-   - CRITICAL MARKERS — these must ALL be clearly visible AND consistent before a "no red flags"
-     result is even permitted. If ANY one of them is NOT VISIBLE (or you are unsure), you are
-     FORBIDDEN from returning "No red flags" and MUST return "Insufficient photos to screen":
-       * Chanel: interior "CHANEL — Made in France/Italy" heat stamp and its font; serial sticker +
-         hologram AND that the serial era matches the hardware/leather; CC turnlock right-C-over-
-         left-C overlap seen straight-on; stitch density/quilting alignment; hardware engraving.
-       * Louis Vuitton: date code (format + the correct hidden location for this model); heat-stamp
-         font/depth; hardware engraving.
-       * Hermès: blind/date stamp; the hand saddle-stitching pattern; hardware engraving & screws.
-       * Gucci / Dior / YSL / Prada / other: interior brand + serial/heat stamp; hardware engraving;
-         stitching.
+     THIS exact brand + item (e.g. "how to authenticate Chanel Classic Flap real vs fake serial",
+     "Rolex Submariner real vs fake serial rehaut movement", "Cartier Love bracelet fake tells
+     hallmark", "Nike Jordan 1 legit check"). Extract the SPECIFIC checkpoints professional
+     authenticators use for that category and test the photos against each.
+   - For EACH checkpoint report CONSISTENT, INCONSISTENT (a red flag), or NOT VISIBLE. A counterfeit's
+     whole purpose is to copy the general look, logo and layout — so "it looks like a genuine one" is
+     NOT a positive signal and must NOT be marked CONSISTENT. Only mark CONSISTENT when the photo
+     clearly shows a SPECIFIC, hard-to-fake genuine trait; if the shot only shows the general look,
+     mark it NOT VISIBLE.
+   - CRITICAL MARKERS — the category-specific make-or-break points that must ALL be clearly visible
+     AND consistent before a "no red flags" result is even permitted. If ANY one is NOT VISIBLE (or
+     you are unsure), you are FORBIDDEN from returning "No red flags" and MUST return "Insufficient
+     photos to screen":
+       * Handbags: interior brand/"Made in" heat stamp & font; serial/date code + hologram and that
+         its era matches the hardware/leather; logo-lock engraving/orientation; stitch density; hardware engraving.
+       * Watches: serial & reference/model numbers (and whether they match the model and era); rehaut/
+         dial printing crispness; caseback & lug engraving; crown/logo; movement finishing if the
+         caseback is open; weight/feel notes. (Super-fakes exist — a photo can rarely clear a watch.)
+       * Jewellery: maker's hallmark & metal-purity stamp (750/585/PT950/925); engraving quality;
+         gemstone setting & any lab certificate. NOTE fine jewellery/gemstones really need a
+         jeweller/gemologist and often an acid/XRF metal test — say so.
+       * Shoes: insole/sole & box-label stamps, size-tag font, stitching & construction.
+       * Clothing: brand + care/composition labels, stitching, hardware, any hologram/RFID.
    - Choose ONE assessment:
-       * "Red flags — likely counterfeit": any marker is inconsistent, misspelled, wrong font, or the
-         serial/era does not match the leather/hardware.
-       * "Insufficient photos to screen": ANY critical marker above is not clearly visible/legible —
-         this is the case for MOST casual photo sets (exterior-only or serial-corner-only shots).
-         This is the correct, honest answer when the make-or-break photos are missing; default here
-         whenever unsure. Never pass a bag whose critical markers you could not actually inspect.
-       * "No red flags in visible areas": ONLY when EVERY critical marker for the brand is both
-         visible and consistent. Even then it is NOT a statement that the bag is genuine.
+       * "Red flags — likely counterfeit": any marker is inconsistent, misspelled, wrong font, or a
+         serial/reference does not match the model/era.
+       * "Insufficient photos to screen": ANY critical marker for this category is not clearly
+         visible/legible — the case for MOST casual photo sets. This is the correct, honest answer
+         when the make-or-break photos are missing; default here whenever unsure. Never pass an item
+         whose critical markers you could not actually inspect.
+       * "No red flags in visible areas": ONLY when EVERY critical marker for the category is both
+         visible and consistent. Even then it is NOT a statement that the item is genuine.
    - A good fake can pass a photo screen; absence of red flags is NEVER proof of authenticity. Give a
-     confidence level and list the exact additional photos needed to properly screen (interior heat
-     stamp macro, straight-on CC turnlock / hardware engraving, stitch macro along a seam, base &
-     corners). It is far more costly to wave through a fake than to ask for more photos — when the
-     evidence is thin, return "Insufficient".
+     confidence level and list the exact additional photos needed to properly screen for this
+     category (e.g. watch: caseback, serial between lugs, rehaut, movement; jewellery: hallmark macro,
+     certificate; bag: interior stamp, serial macro; shoes: insole & box label). When evidence is
+     thin, return "Insufficient".
 4. RETAIL PRICE (RRP) — this MUST be the European / Irish EURO price actually charged in Ireland.
    CRITICAL RULE: brands (especially Louis Vuitton) set DIFFERENT prices per region. You must NEVER
    take a US dollar price and convert it into euros — a USD→EUR conversion is NOT the RRP and is
@@ -500,7 +581,11 @@ Your job:
    c) Put the euro figure in rrp.amount, name the exact source in rrp.note, and include its URL in
       "sources". If — and only if — you truly cannot find any source quoting the European euro RRP,
       set rrp.amount to null and explain in rrp.note. Do NOT fall back to a USD conversion.
-   Then gather recent RESALE listings/comps across global resale sites.
+      (For some categories RRP differs from market value — e.g. hyped watches like Rolex/Patek and
+      hyped trainers routinely trade ABOVE retail; note this in rrp.note when relevant.)
+   Then gather recent RESALE listings/comps from the platforms that fit the CATEGORY: bags/clothing/
+   jewellery → Vestiaire, The RealReal, Fashionphile, Rebag, 1stDibs; watches → Chrono24, WatchCharts,
+   Bob's Watches, auction results; shoes/trainers → StockX, GOAT, Vestiaire.
 5. Produce a RESALE PRICE ESTIMATE as a range, and show how it shifts by condition grade.
 
 Use web_search several times (retail price; then resale comps on the major platforms). Give ALL
@@ -515,6 +600,7 @@ when genuinely unknown):
 
 \`\`\`json
 {
+  "category": "Handbag | Watch | Jewellery | Shoes | Clothing | Accessory | Other",
   "brand": "",
   "model": "",
   "variant_size": "",
@@ -559,45 +645,55 @@ function extractJson(text) {
   return null;
 }
 
-// Save one valuation (photos + record) to Supabase. Best-effort: never throws, so a
-// storage hiccup can't break the valuation the user just paid for.
+// Valuation history store — Supabase in prod, local file in dev (so History works either way).
+const VALUATIONS_FILE = join(__dirname, "valuations.local.json");
+function localValsRead() {
+  try {
+    return existsSync(VALUATIONS_FILE) ? JSON.parse(readFileSync(VALUATIONS_FILE, "utf8")) : [];
+  } catch {
+    return [];
+  }
+}
+function localValsWrite(a) {
+  writeFileSync(VALUATIONS_FILE, JSON.stringify(a, null, 2));
+}
+
+// Save one valuation (photos + record). Best-effort: never throws, so a storage hiccup can't
+// break the valuation the user just paid for.
 async function saveValuation({ data, note, files }) {
-  if (!supabase || !data) return null;
+  if (!data) return null;
   const id = randomUUID();
 
   const photo_urls = [];
   for (let i = 0; i < files.length; i++) {
     try {
       // Shrink the STORED copy only (the identification already used the full-res image).
-      // Keeps History light: ~200–350 KB per photo instead of several MB.
-      let body, contentType, ext;
+      let resized;
       try {
-        body = await sharp(files[i].buffer)
-          .rotate() // bake in EXIF orientation so it displays upright
+        resized = await sharp(files[i].buffer)
+          .rotate()
           .resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: true })
           .jpeg({ quality: 72 })
           .toBuffer();
-        contentType = "image/jpeg";
-        ext = "jpg";
       } catch (rz) {
-        // If shrinking fails for any reason, fall back to the original file.
-        console.error("Resize failed, storing original:", rz.message);
-        body = files[i].buffer;
-        contentType = files[i].mimetype || "image/jpeg";
-        ext = (contentType.split("/")[1] || "jpg").replace("jpeg", "jpg");
+        resized = files[i].buffer;
       }
-      const path = `${id}/${i}.${ext}`;
-      const { error } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(path, body, { contentType, upsert: true });
-      if (!error) {
-        const { data: pub } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
-        if (pub && pub.publicUrl) photo_urls.push(pub.publicUrl);
+      if (supabase) {
+        const path = `${id}/${i}.jpg`;
+        const { error } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(path, resized, { contentType: "image/jpeg", upsert: true });
+        if (!error) {
+          const { data: pub } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+          if (pub && pub.publicUrl) photo_urls.push(pub.publicUrl);
+        } else {
+          console.error("Photo upload failed:", error.message);
+        }
       } else {
-        console.error("Photo upload failed:", error.message);
+        photo_urls.push("data:image/jpeg;base64," + resized.toString("base64"));
       }
     } catch (e) {
-      console.error("Photo upload threw:", e.message);
+      console.error("Photo save threw:", e.message);
     }
   }
 
@@ -617,12 +713,19 @@ async function saveValuation({ data, note, files }) {
     note: note || null,
     photo_urls,
     data,
+    created_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase.from("valuations").insert(row);
-  if (error) {
-    console.error("Supabase insert error:", error.message);
-    return null;
+  if (supabase) {
+    const { error } = await supabase.from("valuations").insert(row);
+    if (error) {
+      console.error("Supabase insert error:", error.message);
+      return null;
+    }
+  } else {
+    const arr = localValsRead();
+    arr.push(row);
+    localValsWrite(arr);
   }
   return id;
 }
@@ -671,8 +774,9 @@ app.post("/api/analyze", requireCode, upload.array("photos", MAX_PHOTOS), async 
             {
               type: "text",
               text:
-                `These ${req.files.length} photo(s) all show the SAME handbag from different angles. ` +
-                "Identify it, assess its condition, find its RRP and estimate its resale value across global resale sites." +
+                `These ${req.files.length} photo(s) all show the SAME item from different angles. ` +
+                "Identify it (any luxury/designer category — bag, watch, jewellery, shoes, clothing, accessory), " +
+                "assess its condition, screen its authenticity, find its RRP and estimate its resale value." +
                 (userNote ? `\n\nExtra context from me: ${userNote}` : ""),
             },
           ],
@@ -726,17 +830,20 @@ app.post("/api/analyze", requireCode, upload.array("photos", MAX_PHOTOS), async 
 
 // Past valuations, newest first.
 app.get("/api/history", requireCode, async (req, res) => {
-  if (!supabase) return res.json({ enabled: false, items: [] });
   try {
-    const { data, error } = await supabase
-      .from("valuations")
-      .select(
-        "id, created_at, brand, model, condition_grade, authenticity_assessment, rrp_amount, rrp_currency, resale_low, resale_high, photo_urls, data"
-      )
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ enabled: true, items: data });
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("valuations")
+        .select(
+          "id, created_at, brand, model, condition_grade, authenticity_assessment, rrp_amount, rrp_currency, resale_low, resale_high, photo_urls, data"
+        )
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ enabled: true, items: data });
+    }
+    const items = localValsRead().slice().reverse().slice(0, 200);
+    res.json({ enabled: true, items });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

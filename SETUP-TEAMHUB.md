@@ -43,6 +43,20 @@ create table if not exists messages (
   created_at timestamptz default now()
 );
 alter table messages enable row level security;
+
+-- Seller intakes (saved consignment slips)
+create table if not exists intakes (
+  id uuid primary key,
+  consignor_name text,
+  account_number text,
+  items jsonb,
+  total_sale numeric,
+  total_ours numeric,
+  total_seller numeric,
+  created_by text,
+  created_at timestamptz default now()
+);
+alter table intakes enable row level security;
 ```
 
 You should see "Success. No rows returned." — that's correct.
