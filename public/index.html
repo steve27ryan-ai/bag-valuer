@@ -337,6 +337,39 @@
     display: flex; align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }
   .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
+  /* Consignment slip (in-app overlay + printable) */
+  .slip-overlay { position: fixed; inset: 0; background: var(--white); z-index: 300; overflow: auto; }
+  .slip-toolbar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; background: var(--espresso); }
+  .slip-toolbar button { border: 1px solid rgba(255,255,255,0.35); background: none; color: var(--pearl);
+    padding: 9px 18px; font-family: "Jost"; font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; }
+  .slip-toolbar .slip-print { background: var(--bronze); border-color: var(--bronze); }
+  .slip-page { max-width: 620px; margin: 0 auto; padding: 40px 28px 60px; color: var(--espresso); }
+  .slip-eyebrow { font-size: 0.58rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--bronze); }
+  .slip-title { font-family: "Cormorant Garamond", serif; font-size: 2rem; margin: 6px 0 2px; }
+  .slip-date { color: var(--stone); font-size: 0.8rem; margin-bottom: 20px; }
+  .slip-cons { display: flex; gap: 40px; margin-bottom: 20px; }
+  .slip-cons .ml { display: block; font-size: 0.52rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bronze); margin-bottom: 4px; }
+  .slip-cons .val { font-family: "Cormorant Garamond", serif; font-size: 1.2rem; }
+  .slip-blank { display: inline-block; min-width: 150px; border-bottom: 1px solid var(--espresso); height: 18px; }
+  .slip-table { width: 100%; border-collapse: collapse; }
+  .slip-table th { font-size: 0.5rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--bronze);
+    text-align: left; padding: 0 6px 8px; border-bottom: 1px solid var(--bronze); }
+  .slip-table td { padding: 12px 6px; border-bottom: 1px solid var(--sand); font-size: 0.95rem; vertical-align: top; }
+  .slip-table .pay, .slip-table th.pay { text-align: right; }
+  .slip-table td.pay { font-weight: 500; }
+  .slip-table tr.tot td { border-top: 2px solid var(--bronze); border-bottom: none; padding-top: 13px; font-size: 1.05rem; }
+  .slip-sign { display: flex; gap: 40px; margin-top: 48px; }
+  .slip-sign div { flex: 1; border-top: 1px solid var(--espresso); padding-top: 7px; font-size: 0.62rem;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--stone); }
+  .slip-foot { font-size: 0.66rem; color: var(--stone); margin-top: 26px; line-height: 1.7; }
+  @media print {
+    body > *:not(.slip-overlay) { display: none !important; }
+    .slip-overlay { position: static; overflow: visible; background: #fff; }
+    .slip-toolbar { display: none !important; }
+    .slip-page { max-width: none; padding: 0; }
+  }
+
   /* Tasks — board */
   .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; align-items: start; }
   .col { background: var(--white); border: 1px solid var(--border); }
@@ -866,35 +899,28 @@
     const totalsRow = lines.length > 1
       ? "<tr class='tot'><td>Total · " + lines.length + " items</td><td>" + fmt(totSale) + "</td><td>we keep " + fmt(totOurs) + "</td><td class='pay'>" + fmt(totSeller) + "</td></tr>"
       : "";
-    const win = window.open("", "_blank");
-    if (!win) { alert("Please allow pop-ups to open the printable slip."); return; }
-    win.document.write(
-      '<!doctype html><html><head><meta charset="utf-8"><title>' + esc(title) + '</title><style>' +
-      '*{box-sizing:border-box}body{font-family:Georgia,"Times New Roman",serif;color:#1E1712;margin:0;padding:40px;max-width:640px}' +
-      '.eyebrow{font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#9E7E5A}' +
-      'h1{font-weight:normal;font-size:28px;margin:6px 0 2px}.date{color:#6B5F55;font-size:12px;margin-bottom:18px}' +
-      'table{width:100%;border-collapse:collapse}th{font-family:Arial,sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#9E7E5A;text-align:left;padding:0 6px 8px;border-bottom:1px solid #9E7E5A}' +
-      'td{padding:11px 6px;border-bottom:1px solid #E8E0D5;font-size:15px;vertical-align:top}td.pay{font-weight:bold;text-align:right}th.pay{text-align:right}' +
-      'tr.tot td{border-top:2px solid #9E7E5A;border-bottom:none;font-size:16px;padding-top:12px}' +
-      '.cons{display:flex;gap:40px;margin:0 0 18px}.cons div{font-size:14px}.cons .ml{font-family:Arial,sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#9E7E5A;display:block;margin-bottom:3px}' +
-      '.blank{display:inline-block;min-width:150px;border-bottom:1px solid #1E1712;height:16px}' +
-      '.sign{display:flex;gap:40px;margin-top:46px}.sign div{flex:1;border-top:1px solid #1E1712;padding-top:6px;font-family:Arial,sans-serif;font-size:11px;color:#6B5F55}' +
-      '.foot{font-size:10px;color:#8a8378;margin-top:24px;line-height:1.6}' +
-      '@media print{body{padding:12mm}}</style></head><body>' +
-      '<div class="eyebrow">Siopaella &middot; Designer Exchange</div>' +
-      '<h1>' + esc(title) + "</h1>" +
-      '<div class="date">' + esc(dateStr) + "</div>" +
-      '<div class="cons"><div><span class="ml">Consignor</span>' + field(meta.consignor) + "</div>" +
-        '<div><span class="ml">Account no.</span>' + field(meta.account) + "</div></div>" +
-      "<table><thead><tr><th>Item</th><th>Sale price</th><th>Split</th><th class='pay'>Seller receives</th></tr></thead>" +
+    const content =
+      '<div class="slip-eyebrow">Siopaella &middot; Designer Exchange</div>' +
+      '<div class="slip-title">' + esc(title) + "</div>" +
+      '<div class="slip-date">' + esc(dateStr) + "</div>" +
+      '<div class="slip-cons"><div><span class="ml">Consignor</span><span class="val">' + field(meta.consignor) + "</span></div>" +
+        '<div><span class="ml">Account no.</span><span class="val">' + field(meta.account) + "</span></div></div>" +
+      '<table class="slip-table"><thead><tr><th>Item</th><th>Sale price</th><th>Split</th><th class="pay">Seller receives</th></tr></thead>' +
       "<tbody>" + body + totalsRow + "</tbody></table>" +
-      '<div class="sign"><div>Seller signature</div><div>Staff · date</div></div>' +
-      '<div class="foot">Prices are estimates pending sale. Consignment split: under €250 = 60% · €250–649 = 50% · €650–749 = 40% · €750–3,999 = 30% · €4,000+ = 20% to Siopaella.</div>' +
-      "</body></html>"
-    );
-    win.document.close();
-    win.focus();
-    setTimeout(function () { win.print(); }, 350);
+      '<div class="slip-sign"><div>Seller signature</div><div>Staff &middot; date</div></div>' +
+      '<div class="slip-foot">Prices are estimates pending sale. Consignment split: under €250 = 60% &middot; €250–649 = 50% &middot; €650–749 = 40% &middot; €750–3,999 = 30% &middot; €4,000+ = 20% to Siopaella.</div>';
+    // Show the slip in-app (with a Close button) so staff can return without quitting.
+    const ov = document.createElement("div");
+    ov.className = "slip-overlay";
+    ov.innerHTML =
+      '<div class="slip-toolbar">' +
+        '<button type="button" class="slip-close">← Back</button>' +
+        '<button type="button" class="slip-print">Print / Save PDF</button>' +
+      "</div>" +
+      '<div class="slip-page">' + content + "</div>";
+    ov.querySelector(".slip-close").onclick = () => ov.remove();
+    ov.querySelector(".slip-print").onclick = () => window.print();
+    document.body.appendChild(ov);
   }
   window.printValuation = function () {
     const d = currentValuation;
