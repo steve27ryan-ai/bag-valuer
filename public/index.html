@@ -340,7 +340,9 @@
   /* Consignment slip (in-app overlay + printable) */
   .slip-overlay { position: fixed; inset: 0; background: var(--white); z-index: 300; overflow: auto; }
   .slip-toolbar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 16px; background: var(--espresso); }
+    gap: 10px; padding: 12px 16px; padding-top: max(14px, env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right));
+    background: var(--espresso); }
   .slip-toolbar button { border: 1px solid rgba(255,255,255,0.35); background: none; color: var(--pearl);
     padding: 9px 18px; font-family: "Jost"; font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; }
   .slip-toolbar .slip-print { background: var(--bronze); border-color: var(--bronze); }
