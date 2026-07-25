@@ -730,101 +730,120 @@ async function saveValuation({ data, note, files }) {
   return id;
 }
 
+function noKey() {
+  return !API_KEY || API_KEY.includes("PASTE_YOUR");
+}
+
+// Core: run the vision + web-search valuation for a set of photos of ONE item.
+async function analyzeImages(files, userNote) {
+  const imageContent = [];
+  files.forEach((file, i) => {
+    imageContent.push({ type: "text", text: `Photo ${i + 1} of ${files.length}:` });
+    imageContent.push({
+      type: "image",
+      source: { type: "base64", media_type: file.mimetype || "image/jpeg", data: file.buffer.toString("base64") },
+    });
+  });
+
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 8000,
+    system: SYSTEM_PROMPT,
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }],
+    messages: [
+      {
+        role: "user",
+        content: [
+          ...imageContent,
+          {
+            type: "text",
+            text:
+              `These ${files.length} photo(s) all show the SAME item from different angles. ` +
+              "Identify it (any luxury/designer category — bag, watch, jewellery, shoes, clothing, accessory), " +
+              "assess its condition, screen its authenticity, find its RRP and estimate its resale value." +
+              (userNote ? `\n\nExtra context from me: ${userNote}` : ""),
+          },
+        ],
+      },
+    ],
+  });
+
+  const fullText = response.content.filter((b) => b.type === "text").map((b) => b.text).join("\n");
+  const data = extractJson(fullText);
+
+  // Safety net: never let a photo screen stand as a "pass" when markers are unseen.
+  if (data && data.authenticity) {
+    const a = data.authenticity;
+    const checks = Array.isArray(a.checks) ? a.checks : [];
+    const anyUnseen = checks.some((c) => /not\s*visible/i.test((c && c.status) || ""));
+    const s = (a.assessment || "").toLowerCase();
+    const flaggedFake = s.includes("counterfeit") || s.includes("likely fake");
+    if (!flaggedFake && anyUnseen) a.assessment = "Insufficient photos to screen";
+  }
+
+  return { data, narrative: fullText.replace(/```json[\s\S]*?```/gi, "").trim(), raw: data ? undefined : fullText };
+}
+
 app.post("/api/analyze", requireCode, upload.array("photos", MAX_PHOTOS), async (req, res) => {
   try {
-    if (!API_KEY || API_KEY.includes("PASTE_YOUR")) {
+    if (noKey()) {
       return res.status(400).json({
-        error:
-          "No API key configured. Open the .env file in the bag-valuer folder and paste your Anthropic API key.",
+        error: "No API key configured. Open the .env file in the bag-valuer folder and paste your Anthropic API key.",
       });
     }
     if (!req.files || !req.files.length) {
       return res.status(400).json({ error: "No photos uploaded." });
     }
-
     const userNote = (req.body.note || "").toString().slice(0, 500);
+    const { data, narrative, raw } = await analyzeImages(req.files, userNote);
 
-    // One image block per uploaded photo, each preceded by a short label.
-    const imageContent = [];
-    req.files.forEach((file, i) => {
-      imageContent.push({
-        type: "text",
-        text: `Photo ${i + 1} of ${req.files.length}:`,
-      });
-      imageContent.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: file.mimetype || "image/jpeg",
-          data: file.buffer.toString("base64"),
-        },
-      });
-    });
-
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 8000,
-      system: SYSTEM_PROMPT,
-      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }],
-      messages: [
-        {
-          role: "user",
-          content: [
-            ...imageContent,
-            {
-              type: "text",
-              text:
-                `These ${req.files.length} photo(s) all show the SAME item from different angles. ` +
-                "Identify it (any luxury/designer category — bag, watch, jewellery, shoes, clothing, accessory), " +
-                "assess its condition, screen its authenticity, find its RRP and estimate its resale value." +
-                (userNote ? `\n\nExtra context from me: ${userNote}` : ""),
-            },
-          ],
-        },
-      ],
-    });
-
-    // Collect all text blocks from the final assistant message.
-    const fullText = response.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("\n");
-
-    const data = extractJson(fullText);
-
-    // Safety net: a photo screen must never stand as a "pass". If the model did not flag a
-    // counterfeit but left any marker unverified, normalise the record to "needs expert check".
-    if (data && data.authenticity) {
-      const a = data.authenticity;
-      const checks = Array.isArray(a.checks) ? a.checks : [];
-      const anyUnseen = checks.some((c) => /not\s*visible/i.test((c && c.status) || ""));
-      const s = (a.assessment || "").toLowerCase();
-      const flaggedFake = s.includes("counterfeit") || s.includes("likely fake");
-      if (!flaggedFake && anyUnseen) {
-        a.assessment = "Insufficient photos to screen";
-      }
-    }
-
-    // Record it (best-effort — won't block or fail the response).
     let savedId = null;
     try {
       savedId = await saveValuation({ data, note: userNote, files: req.files });
     } catch (e) {
       console.error("saveValuation error:", e.message);
     }
-
-    res.json({
-      data,
-      savedId,
-      // Strip the trailing json block from the human-readable narrative.
-      narrative: fullText.replace(/```json[\s\S]*?```/gi, "").trim(),
-      raw: data ? undefined : fullText, // fallback if parsing failed
-    });
+    res.json({ data, savedId, narrative, raw });
   } catch (err) {
     console.error(err);
-    const msg =
-      err?.error?.error?.message || err?.message || "Something went wrong analysing the photo.";
-    res.status(500).json({ error: msg });
+    res.status(500).json({
+      error: err?.error?.error?.message || err?.message || "Something went wrong analysing the photo.",
+    });
+  }
+});
+
+// Batch: value EACH photo as its own separate item, in parallel.
+app.post("/api/analyze-batch", requireCode, upload.array("photos", MAX_PHOTOS), async (req, res) => {
+  try {
+    if (noKey()) return res.status(400).json({ error: "No API key configured." });
+    if (!req.files || !req.files.length) return res.status(400).json({ error: "No photos uploaded." });
+    const userNote = (req.body.note || "").toString().slice(0, 500);
+    // Per-item notes: sent as notes[] aligned to the files, falling back to the shared note.
+    let perNotes = req.body["notes[]"] ?? req.body.notes ?? [];
+    if (!Array.isArray(perNotes)) perNotes = [perNotes];
+
+    const items = await Promise.all(
+      req.files.map(async (file, i) => {
+        try {
+          const itemNote = ((perNotes[i] || "").toString().trim() || userNote).slice(0, 500);
+          const { data } = await analyzeImages([file], itemNote);
+          let savedId = null;
+          try {
+            savedId = await saveValuation({ data, note: itemNote, files: [file] });
+          } catch (e) {
+            console.error("batch save error:", e.message);
+          }
+          return { index: i, data, savedId };
+        } catch (e) {
+          console.error("batch item failed:", e.message);
+          return { index: i, data: null, error: e.message };
+        }
+      })
+    );
+    res.json({ items });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err?.message || "Batch valuation failed." });
   }
 });
 
