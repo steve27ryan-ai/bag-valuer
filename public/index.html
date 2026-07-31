@@ -261,9 +261,14 @@
   .hist-export:hover { background: var(--bronze); color: var(--white); }
   .hist-status { text-align: center; color: var(--stone); font-size: 0.85rem; padding: 40px; }
   .hist-list { display: flex; flex-direction: column; gap: 2px; }
-  .hist-card { display: flex; gap: 18px; background: var(--white); border: 1px solid var(--border);
-    padding: 16px 18px; cursor: pointer; align-items: center; transition: background 0.2s; }
+  .hist-card { position: relative; display: flex; gap: 18px; background: var(--white); border: 1px solid var(--border);
+    padding: 16px 40px 16px 18px; cursor: pointer; align-items: center; transition: background 0.2s; }
   .hist-card:hover { background: var(--pearl); }
+  .hist-del { position: absolute; top: 50%; right: 7px; transform: translateY(-50%); width: 28px; height: 28px;
+    border-radius: 50%; background: transparent; color: var(--bronze-pale); border: none; cursor: pointer;
+    font-size: 1.1rem; line-height: 1; display: flex; align-items: center; justify-content: center; z-index: 2;
+    transition: background 0.15s, color 0.15s; }
+  .hist-del:hover { background: #8a3b3b; color: #fff; }
   .hist-thumb { width: 66px; height: 66px; object-fit: cover; background: var(--sand); flex-shrink: 0; }
   .hist-thumb.ph { display: flex; align-items: center; justify-content: center; color: var(--bronze-pale); font-size: 1.6rem; }
   .hist-main { flex: 1; min-width: 0; }
@@ -1560,6 +1565,40 @@
     }
   }
 
+  // Small "×" delete control on a history card. Stops the card's own click (open/reprint).
+  function addDeleteBtn(card, kind, id) {
+    const btn = document.createElement("button");
+    btn.className = "hist-del";
+    btn.type = "button";
+    btn.textContent = "×";
+    btn.title = "Delete";
+    btn.onclick = (e) => { e.stopPropagation(); deleteHistoryEntry(kind, id); };
+    card.appendChild(btn);
+  }
+
+  async function deleteHistoryEntry(kind, id) {
+    const what = kind === "intakes" ? "this intake slip" : "this valuation";
+    if (!confirm("Delete " + what + "? This can't be undone.")) return;
+    const url = (kind === "intakes" ? "/api/intakes/" : "/api/history/") + encodeURIComponent(id);
+    try {
+      const r = await fetch(url, {
+        method: "DELETE",
+        headers: accessCode ? { "x-access-code": accessCode } : {},
+      });
+      if (r.status === 401) {
+        localStorage.removeItem(CODE_KEY); accessCode = "";
+        lock.classList.remove("hide"); throw new Error("Please sign in again.");
+      }
+      const p = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(p.error || "Delete failed");
+      if (kind === "intakes") intakeRecords = intakeRecords.filter((x) => x.id !== id);
+      else histItems = histItems.filter((x) => x.id !== id);
+      filterHistory();
+    } catch (e) {
+      alert("Couldn't delete: " + e.message);
+    }
+  }
+
   function renderIntakeList(items) {
     if (!items.length) {
       histList.innerHTML = "";
@@ -1587,6 +1626,7 @@
           '<div class="hist-auth" style="color:var(--bronze-deep)">Reprint slip ›</div>' +
         "</div>";
       card.onclick = () => printSlip("Seller intake", it.items || [], { consignor: it.consignor_name, account: it.account_number });
+      addDeleteBtn(card, "intakes", it.id);
       histList.appendChild(card);
     });
   }
@@ -1685,6 +1725,7 @@
           (auth ? '<div class="hist-auth ' + authClass(auth) + '">' + escapeHtml(auth) + "</div>" : "") +
         "</div>";
       card.onclick = () => openDetail(it);
+      addDeleteBtn(card, "valuations", it.id);
       histList.appendChild(card);
     });
   }
