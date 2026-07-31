@@ -209,6 +209,15 @@ const intakeStore = {
     }
     return row;
   },
+  async remove(id) {
+    if (supabase) {
+      const { error } = await supabase.from("intakes").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      return true;
+    }
+    localIntakesWrite(localIntakesRead().filter((r) => r.id !== id));
+    return true;
+  },
 };
 
 // ── Task store ────────────────────────────────────────────────────
@@ -475,6 +484,14 @@ app.post("/api/intakes", requireCode, async (req, res) => {
     res.status(400).json({ error: e.message });
   }
 });
+app.delete("/api/intakes/:id", requireCode, async (req, res) => {
+  try {
+    await intakeStore.remove(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // The login screen posts the typed code here to check it.
 app.post("/api/check", (req, res) => {
@@ -730,6 +747,26 @@ async function saveValuation({ data, note, files }) {
   return id;
 }
 
+// Delete one saved valuation (and best-effort its stored photos).
+async function deleteValuation(id) {
+  if (supabase) {
+    // Remove the photo folder first (best-effort — don't block the row delete on it).
+    try {
+      const { data: listed } = await supabase.storage.from(PHOTO_BUCKET).list(id);
+      if (Array.isArray(listed) && listed.length) {
+        await supabase.storage.from(PHOTO_BUCKET).remove(listed.map((f) => `${id}/${f.name}`));
+      }
+    } catch (e) {
+      console.error("Valuation photo cleanup failed:", e.message);
+    }
+    const { error } = await supabase.from("valuations").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+    return true;
+  }
+  localValsWrite(localValsRead().filter((r) => r.id !== id));
+  return true;
+}
+
 function noKey() {
   return !API_KEY || API_KEY.includes("PASTE_YOUR");
 }
@@ -863,6 +900,14 @@ app.get("/api/history", requireCode, async (req, res) => {
     }
     const items = localValsRead().slice().reverse().slice(0, 200);
     res.json({ enabled: true, items });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.delete("/api/history/:id", requireCode, async (req, res) => {
+  try {
+    await deleteValuation(req.params.id);
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
