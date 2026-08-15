@@ -16,6 +16,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = process.env.MODEL || "claude-sonnet-5";
 const PORT = process.env.PORT || 3000;
+// Cost controls (overridable via env). Web searches are the biggest cost driver — each one
+// pulls page content into the model as input tokens — so we cap them. Images are shrunk
+// before sending too, which trims tokens and speeds uploads.
+const WEB_SEARCH_MAX = Number(process.env.WEB_SEARCH_MAX_USES) || 4;
+const SEND_IMG_MAX_PX = Number(process.env.SEND_IMG_MAX_PX) || 1024;
 // Shared passcode staff type in to use the app. If blank, the app is open (fine for local use).
 const ACCESS_CODE = (process.env.ACCESS_CODE || "").trim();
 
@@ -857,19 +862,34 @@ function noKey() {
 // Core: run the vision + web-search valuation for a set of photos of ONE item.
 async function analyzeImages(files, userNote) {
   const imageContent = [];
-  files.forEach((file, i) => {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    // Shrink before sending — the AI doesn't need full phone-camera resolution to identify
+    // an item, and smaller images mean fewer input tokens and faster uploads.
+    let buf = file.buffer;
+    let mediaType = file.mimetype || "image/jpeg";
+    try {
+      buf = await sharp(file.buffer)
+        .rotate()
+        .resize({ width: SEND_IMG_MAX_PX, height: SEND_IMG_MAX_PX, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 78 })
+        .toBuffer();
+      mediaType = "image/jpeg";
+    } catch (e) {
+      buf = file.buffer; // fall back to the original if resizing fails
+    }
     imageContent.push({ type: "text", text: `Photo ${i + 1} of ${files.length}:` });
     imageContent.push({
       type: "image",
-      source: { type: "base64", media_type: file.mimetype || "image/jpeg", data: file.buffer.toString("base64") },
+      source: { type: "base64", media_type: mediaType, data: buf.toString("base64") },
     });
-  });
+  }
 
   const response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 8000,
     system: SYSTEM_PROMPT,
-    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }],
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: WEB_SEARCH_MAX }],
     messages: [
       {
         role: "user",
