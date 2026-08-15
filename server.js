@@ -28,6 +28,37 @@ const supabase =
     ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
     : null;
 
+// ── Cost tracking ─────────────────────────────────────────────────
+// What each valuation actually costs us, worked out from the API usage it reports.
+// Rates are in USD and OVERRIDABLE via env so they can be kept in step with Anthropic's
+// pricing without a code change. Defaults are standard Claude Sonnet + web-search rates —
+// confirm against your current Anthropic pricing before you price the product on them.
+const COST = {
+  inPerM:    Number(process.env.COST_INPUT_PER_MTOK)  || 3.0,   // $/million input tokens
+  outPerM:   Number(process.env.COST_OUTPUT_PER_MTOK) || 15.0,  // $/million output tokens
+  searchEach:Number(process.env.COST_SEARCH_EACH)     || 0.01,  // $ per web search
+  usdToEur:  Number(process.env.COST_USD_TO_EUR)      || 0.92,  // FX so totals read in €
+};
+
+// Turn one API response's usage into a cost (in both USD and EUR) plus the raw counts.
+function computeCost(usage) {
+  const u = usage || {};
+  const inTok =
+    (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
+  const outTok = u.output_tokens || 0;
+  const searches = (u.server_tool_use && u.server_tool_use.web_search_requests) || 0;
+  const usd =
+    (inTok / 1e6) * COST.inPerM + (outTok / 1e6) * COST.outPerM + searches * COST.searchEach;
+  const eur = usd * COST.usdToEur;
+  return {
+    input_tokens: inTok,
+    output_tokens: outTok,
+    web_searches: searches,
+    cost_usd: Math.round(usd * 1e4) / 1e4,
+    cost_eur: Math.round(eur * 1e4) / 1e4,
+  };
+}
+
 // Seed staff names (used only to fill the team the first time — after that the list is
 // managed in-app and stored). Set STAFF="Steve,Aoife,Niamh" to change the initial seed.
 const STAFF = (process.env.STAFF || "Steve,Aoife,Niamh")
@@ -767,6 +798,58 @@ async function deleteValuation(id) {
   return true;
 }
 
+// ── Usage log ─────────────────────────────────────────────────────
+// Records the cost of every valuation so we can see the real average per search.
+// Always prints to the server log (visible in Render → Logs). Also stores durably:
+// Supabase `usage_events` table if it exists (best-effort), else a local JSON file.
+const USAGE_FILE = join(__dirname, "usage.local.json");
+function localUsageRead() {
+  try {
+    return existsSync(USAGE_FILE) ? JSON.parse(readFileSync(USAGE_FILE, "utf8")) : [];
+  } catch {
+    return [];
+  }
+}
+function localUsageWrite(a) {
+  try { writeFileSync(USAGE_FILE, JSON.stringify(a, null, 2)); } catch {}
+}
+
+async function logUsage({ kind, cost, brand, model }) {
+  const row = {
+    id: randomUUID(),
+    kind: kind || "single",              // "single" | "batch-item"
+    input_tokens: cost.input_tokens,
+    output_tokens: cost.output_tokens,
+    web_searches: cost.web_searches,
+    cost_usd: cost.cost_usd,
+    cost_eur: cost.cost_eur,
+    brand: brand || null,
+    model_item: model || null,
+    created_at: new Date().toISOString(),
+  };
+  // Always visible in logs, even before any table exists.
+  console.log(
+    `[cost] ${row.kind} · in ${row.input_tokens} out ${row.output_tokens} ` +
+    `· ${row.web_searches} searches · €${row.cost_eur} ($${row.cost_usd})`
+  );
+  try {
+    if (supabase) {
+      const { error } = await supabase.from("usage_events").insert(row);
+      if (error) throw new Error(error.message);
+    } else {
+      const arr = localUsageRead();
+      arr.push(row);
+      localUsageWrite(arr);
+    }
+  } catch (e) {
+    // Table may not exist yet — keep a local copy so nothing is lost, and note it once.
+    const arr = localUsageRead();
+    arr.push(row);
+    localUsageWrite(arr);
+    console.error("usage_events store failed (kept locally):", e.message);
+  }
+}
+
 function noKey() {
   return !API_KEY || API_KEY.includes("PASTE_YOUR");
 }
@@ -818,7 +901,14 @@ async function analyzeImages(files, userNote) {
     if (!flaggedFake && anyUnseen) a.assessment = "Insufficient photos to screen";
   }
 
-  return { data, narrative: fullText.replace(/```json[\s\S]*?```/gi, "").trim(), raw: data ? undefined : fullText };
+  const cost = computeCost(response.usage);
+
+  return {
+    data,
+    cost,
+    narrative: fullText.replace(/```json[\s\S]*?```/gi, "").trim(),
+    raw: data ? undefined : fullText,
+  };
 }
 
 app.post("/api/analyze", requireCode, upload.array("photos", MAX_PHOTOS), async (req, res) => {
@@ -832,7 +922,9 @@ app.post("/api/analyze", requireCode, upload.array("photos", MAX_PHOTOS), async 
       return res.status(400).json({ error: "No photos uploaded." });
     }
     const userNote = (req.body.note || "").toString().slice(0, 500);
-    const { data, narrative, raw } = await analyzeImages(req.files, userNote);
+    const { data, cost, narrative, raw } = await analyzeImages(req.files, userNote);
+
+    logUsage({ kind: "single", cost, brand: data && data.brand, model: data && data.model });
 
     let savedId = null;
     try {
@@ -863,7 +955,8 @@ app.post("/api/analyze-batch", requireCode, upload.array("photos", MAX_PHOTOS), 
       req.files.map(async (file, i) => {
         try {
           const itemNote = ((perNotes[i] || "").toString().trim() || userNote).slice(0, 500);
-          const { data } = await analyzeImages([file], itemNote);
+          const { data, cost } = await analyzeImages([file], itemNote);
+          logUsage({ kind: "batch-item", cost, brand: data && data.brand, model: data && data.model });
           let savedId = null;
           try {
             savedId = await saveValuation({ data, note: itemNote, files: [file] });
@@ -908,6 +1001,41 @@ app.delete("/api/history/:id", requireCode, async (req, res) => {
   try {
     await deleteValuation(req.params.id);
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// What have valuations actually cost us? Averages so we can price the product.
+app.get("/api/usage-summary", requireCode, async (req, res) => {
+  try {
+    let rows = [];
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("usage_events")
+        .select("cost_usd, cost_eur, web_searches, input_tokens, output_tokens, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (error) throw new Error(error.message);
+      rows = data || [];
+    } else {
+      rows = localUsageRead();
+    }
+    const n = rows.length;
+    const sum = (k) => rows.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    const totalEur = sum("cost_eur");
+    const round = (x, d = 4) => Math.round(x * 10 ** d) / 10 ** d;
+    res.json({
+      count: n,
+      total_cost_eur: round(totalEur),
+      total_cost_usd: round(sum("cost_usd")),
+      avg_cost_eur: n ? round(totalEur / n) : 0,
+      avg_searches: n ? round(sum("web_searches") / n, 2) : 0,
+      avg_input_tokens: n ? Math.round(sum("input_tokens") / n) : 0,
+      avg_output_tokens: n ? Math.round(sum("output_tokens") / n) : 0,
+      since: n ? rows[rows.length - 1].created_at : null,
+      rates: COST,
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
