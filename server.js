@@ -19,8 +19,10 @@ const PORT = process.env.PORT || 3000;
 // Cost controls (overridable via env). Web searches are the biggest cost driver — each one
 // pulls page content into the model as input tokens — so we cap them. Images are shrunk
 // before sending too, which trims tokens and speeds uploads.
-const WEB_SEARCH_MAX = Number(process.env.WEB_SEARCH_MAX_USES) || 4;
-const SEND_IMG_MAX_PX = Number(process.env.SEND_IMG_MAX_PX) || 1024;
+const WEB_SEARCH_MAX = Number(process.env.WEB_SEARCH_MAX_USES) || 6;
+// 1536px keeps fine detail (hardware, heat stamps, silhouette) needed to tell similar models
+// apart — images are token-capped by the API anyway, so this barely moves cost vs 1024.
+const SEND_IMG_MAX_PX = Number(process.env.SEND_IMG_MAX_PX) || 1536;
 // Shared passcode staff type in to use the app. If blank, the app is open (fine for local use).
 const ACCESS_CODE = (process.env.ACCESS_CODE || "").trim();
 
@@ -570,6 +572,17 @@ the category-appropriate checks below. Your job:
    and give a best guess with a confidence level. ALWAYS use web_search to check the brand's OFFICIAL
    website to confirm the exact model name/reference and spec — prefer the IRELAND (IE) or nearest
    euro-zone/EU store. Treat the official site as the source of truth over resale listings or blogs.
+   MODEL DISAMBIGUATION — many designer lines have several models that look alike in the same
+   material (e.g. Louis Vuitton Damier totes: Westminster vs Iéna vs Neverfull; Chanel Classic
+   Flap vs Coco Handle). Do NOT lock onto the first plausible name. When two or more models could
+   match, deliberately COMPARE the distinguishing features you can see — overall silhouette and
+   proportions, base shape (flat vs rounded), handle style and drop length, strap, closure, pocket
+   layout, hardware, feet, and any model name embossed on the heat stamp — and search the brand's
+   current AND archived/discontinued catalogue to pick the right one. Size codes matter (PM/MM/GM,
+   small/medium/large) — infer size from proportions and any note the user gave. If you cannot be
+   sure of the exact model, state the most likely one with your confidence level and name the
+   runner-up (e.g. "likely Westminster GM; possibly Iéna MM") rather than committing confidently
+   to a single wrong answer. A hedged, honest ID is more useful than a precise-sounding wrong one.
 2. ASSESS CONDITION from all photos, graded on the standard resale scale: Pristine / Excellent /
    Very Good / Good / Fair. Note the specific, category-appropriate wear you can see and which photo
    shows it (bag: corners/handles/hardware; watch: case/crystal/bracelet scratches, dial/lume;
