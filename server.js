@@ -1151,6 +1151,36 @@ app.get("/api/usage-summary", requireCode, async (req, res) => {
   }
 });
 
+// SerpApi (Google Lens) quota — how many lookups are left this month, so we can watch the limit.
+app.get("/api/serpapi-quota", requireCode, async (req, res) => {
+  try {
+    if (!SERPAPI_KEY) return res.json({ enabled: false });
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10000);
+    let j = {};
+    try {
+      const r = await fetch(`https://serpapi.com/account.json?api_key=${SERPAPI_KEY}`, { signal: ctrl.signal });
+      j = await r.json();
+    } finally {
+      clearTimeout(timer);
+    }
+    const limit = Number(j.searches_per_month) || null;
+    const used = Number(j.this_month_usage) || 0;
+    const left = j.plan_searches_left != null ? Number(j.plan_searches_left)
+      : (limit != null ? Math.max(0, limit - used) : null);
+    res.json({
+      enabled: true,
+      plan: j.plan_name || null,
+      limit_per_month: limit,
+      used_this_month: used,
+      left,
+      pct_used: limit ? Math.round((used / limit) * 100) : null,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Tasks API ─────────────────────────────────────────────────────
 app.get("/api/tasks", requireCode, async (req, res) => {
   try {
