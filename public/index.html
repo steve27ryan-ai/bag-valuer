@@ -493,7 +493,7 @@
   .breview-rm { background: none; border: none; color: var(--bronze-pale); cursor: pointer; font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
   .breview-rm:hover { color: #b45; }
   .breview-fail { color: #8a3b3b; font-size: 0.82rem; }
-  .breview-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .breview-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
   .again { text-align: center; margin-top: 24px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   .again button { background: none; border: 1px solid var(--bronze); color: var(--bronze-deep); padding: 0.8rem 2rem; font-family: "Jost"; font-size: 0.66rem; letter-spacing: 0.22em; text-transform: uppercase; cursor: pointer; transition: background 0.3s, color 0.3s; }
@@ -601,12 +601,13 @@
   <div id="batchReview" hidden>
     <div class="breview-head">
       <span class="breview-title">Batch results · <span id="breviewCount">0</span></span>
-      <p class="breview-sub">Check each item and adjust the sale price, then add them to the seller intake. Batch values are quick estimates from one photo — re-run high-value or doubtful items in Single mode for a full condition &amp; authenticity check.</p>
+      <p class="breview-sub">Check each item and adjust the sale price, then <b>Save all to history now</b> (fill in the consignor name/account above first), or <b>Add to intake</b> to combine with more items before saving. Batch values are quick estimates from one photo — re-run high-value or doubtful items in Single mode for a full condition &amp; authenticity check.</p>
     </div>
     <div class="breview-list" id="breviewList"></div>
     <div class="breview-actions">
       <button type="button" class="again-outline" id="breviewCancel">Discard</button>
-      <button type="button" class="again-solid" id="breviewAddAll">Add all to intake</button>
+      <button type="button" class="again-outline" id="breviewAddAll">Add to intake</button>
+      <button type="button" class="again-solid" id="breviewSaveAll">Save all to history now</button>
     </div>
   </div>
   </div><!-- /valuationView -->
@@ -987,6 +988,42 @@
     renderIntake();
     batchReview.hidden = true;
     reset();
+  };
+  // One-tap: save the whole batch straight to History → Intakes (no separate save step).
+  document.getElementById("breviewSaveAll").onclick = async () => {
+    if (!batchItems.length) return;
+    const btn = document.getElementById("breviewSaveAll");
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    try {
+      const meta = intakeMeta();
+      const items = batchItems.map((e) => lineFor(e.name, e.price));
+      const r = await fetch("/api/intakes", {
+        method: "POST",
+        headers: taskHeaders(true),
+        body: JSON.stringify({
+          consignor_name: meta.consignor,
+          account_number: meta.account,
+          items,
+          created_by: currentUser || null,
+        }),
+      });
+      if (r.status === 401) { relock(); return; }
+      if (!r.ok) throw new Error("save failed");
+      btn.textContent = "Saved ✓";
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.disabled = false;
+        batchItems = [];
+        batchReview.hidden = true;
+        reset();
+      }, 1100);
+    } catch (e) {
+      btn.textContent = "Couldn't save — try again";
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = orig; }, 2500);
+    }
   };
   document.getElementById("breviewCancel").onclick = () => { batchReview.hidden = true; reset(); };
 
