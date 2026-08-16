@@ -451,6 +451,11 @@ const upload = multer({
 });
 
 app.use(express.json({ limit: "25mb" })); // room for attached task photos (base64)
+// Don't let phones cache the HTML — otherwise a deploy doesn't show until they clear Safari.
+app.use((req, res, next) => {
+  if (req.path === "/" || req.path.endsWith(".html")) res.set("Cache-Control", "no-store");
+  next();
+});
 app.use(express.static(join(__dirname, "public")));
 
 // Tells the frontend whether a passcode is required, whether history is on, and the staff list.
