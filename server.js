@@ -23,6 +23,10 @@ const WEB_SEARCH_MAX = Number(process.env.WEB_SEARCH_MAX_USES) || 6;
 // 1536px keeps fine detail (hardware, heat stamps, silhouette) needed to tell similar models
 // apart — images are token-capped by the API anyway, so this barely moves cost vs 1024.
 const SEND_IMG_MAX_PX = Number(process.env.SEND_IMG_MAX_PX) || 1536;
+// Reverse-image identification (Google Lens via SerpApi). When set, the photo is matched against
+// Google's image index first to pin the EXACT model, which is then handed to the AI. Optional —
+// without it the app still works, just relying on the AI's own identification.
+const SERPAPI_KEY = (process.env.SERPAPI_KEY || "").trim();
 // Shared passcode staff type in to use the app. If blank, the app is open (fine for local use).
 const ACCESS_CODE = (process.env.ACCESS_CODE || "").trim();
 
@@ -583,6 +587,11 @@ the category-appropriate checks below. Your job:
    sure of the exact model, state the most likely one with your confidence level and name the
    runner-up (e.g. "likely Westminster GM; possibly Iéna MM") rather than committing confidently
    to a single wrong answer. A hedged, honest ID is more useful than a precise-sounding wrong one.
+   USER-PROVIDED MODEL IS AUTHORITATIVE — if the user's note names a specific model, reference or
+   size (e.g. "Westminster GM", "Speedy 30", "Ref 116610LN"), TREAT IT AS CORRECT. These sellers
+   know their stock. Do not override it with your own guess; instead verify that named model's spec
+   and current price and value THAT. Only push back if the photo plainly contradicts the note
+   (e.g. note says a watch but the photo is a handbag) — and then say so explicitly.
 2. ASSESS CONDITION from all photos, graded on the standard resale scale: Pristine / Excellent /
    Very Good / Good / Fair. Note the specific, category-appropriate wear you can see and which photo
    shows it (bag: corners/handles/hardware; watch: case/crystal/bracelet scratches, dial/lume;
@@ -872,9 +881,55 @@ function noKey() {
   return !API_KEY || API_KEY.includes("PASTE_YOUR");
 }
 
+// Reverse-image identification via SerpApi's Google Lens engine. Hosts the photo on Supabase
+// storage (Lens needs a public URL), asks Lens what it matches, and returns the top match titles —
+// the same "visual matches" you see in the Google Lens app. Best-effort: any failure returns [].
+async function lensMatchTitles(buffer) {
+  if (!SERPAPI_KEY || !supabase) return [];
+  let path = null;
+  try {
+    path = `lens/${randomUUID()}.jpg`;
+    const { error: upErr } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .upload(path, buffer, { contentType: "image/jpeg", upsert: true });
+    if (upErr) throw new Error(upErr.message);
+    const { data: pub } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+    const imgUrl = pub && pub.publicUrl;
+    if (!imgUrl) throw new Error("no public url");
+
+    const api =
+      "https://serpapi.com/search.json?engine=google_lens&hl=en&country=ie" +
+      `&url=${encodeURIComponent(imgUrl)}&api_key=${SERPAPI_KEY}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12000);
+    let titles = [];
+    try {
+      const r = await fetch(api, { signal: ctrl.signal });
+      const j = await r.json();
+      const matches = Array.isArray(j.visual_matches) ? j.visual_matches : [];
+      titles = matches
+        .map((m) => (m && m.title ? String(m.title).trim() : ""))
+        .filter(Boolean)
+        .slice(0, 8);
+    } finally {
+      clearTimeout(timer);
+    }
+    return titles;
+  } catch (e) {
+    console.error("Lens lookup failed:", e.message);
+    return [];
+  } finally {
+    // We only needed the hosted image for the Lens call — remove it.
+    if (path) {
+      try { await supabase.storage.from(PHOTO_BUCKET).remove([path]); } catch {}
+    }
+  }
+}
+
 // Core: run the vision + web-search valuation for a set of photos of ONE item.
 async function analyzeImages(files, userNote) {
   const imageContent = [];
+  let firstBuf = null;
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     // Shrink before sending — the AI doesn't need full phone-camera resolution to identify
@@ -891,12 +946,24 @@ async function analyzeImages(files, userNote) {
     } catch (e) {
       buf = file.buffer; // fall back to the original if resizing fails
     }
+    if (i === 0) firstBuf = buf;
     imageContent.push({ type: "text", text: `Photo ${i + 1} of ${files.length}:` });
     imageContent.push({
       type: "image",
       source: { type: "base64", media_type: mediaType, data: buf.toString("base64") },
     });
   }
+
+  // Reverse-image match the first photo with Google Lens to pin the exact model.
+  const lensTitles = firstBuf ? await lensMatchTitles(firstBuf) : [];
+  if (lensTitles.length) console.log(`[lens] ${lensTitles.length} matches · e.g. "${lensTitles[0]}"`);
+  const lensBlock = lensTitles.length
+    ? `\n\nGOOGLE LENS reverse-image matches for photo 1 — these are listings of what is very ` +
+      `likely the SAME item, matched by image, so they are a STRONG signal for the exact brand, ` +
+      `model and size. Identify the item from the consensus across them (sanity-check against what ` +
+      `you actually see in the photos; ignore any that clearly don't match):\n- ` +
+      lensTitles.join("\n- ")
+    : "";
 
   const response = await anthropic.messages.create({
     model: MODEL,
@@ -914,7 +981,8 @@ async function analyzeImages(files, userNote) {
               `These ${files.length} photo(s) all show the SAME item from different angles. ` +
               "Identify it (any luxury/designer category — bag, watch, jewellery, shoes, clothing, accessory), " +
               "assess its condition, screen its authenticity, find its RRP and estimate its resale value." +
-              (userNote ? `\n\nExtra context from me: ${userNote}` : ""),
+              (userNote ? `\n\nExtra context from me: ${userNote}` : "") +
+              lensBlock,
           },
         ],
       },
@@ -1124,7 +1192,14 @@ app.listen(PORT, "0.0.0.0", () => {
   );
   console.log(
     supabase
-      ? "   History (Supabase): ON\n"
-      : "   History (Supabase): off (set SUPABASE_URL + SUPABASE_SERVICE_KEY to enable saving)\n"
+      ? "   History (Supabase): ON"
+      : "   History (Supabase): off (set SUPABASE_URL + SUPABASE_SERVICE_KEY to enable saving)"
+  );
+  console.log(
+    SERPAPI_KEY && supabase
+      ? "   Google Lens identification: ON\n"
+      : SERPAPI_KEY
+      ? "   Google Lens identification: needs Supabase (to host the photo) — off\n"
+      : "   Google Lens identification: off (set SERPAPI_KEY to turn on)\n"
   );
 });
