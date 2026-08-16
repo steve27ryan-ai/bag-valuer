@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 3000;
 // Cost controls (overridable via env). Web searches are the biggest cost driver — each one
 // pulls page content into the model as input tokens — so we cap them. Images are shrunk
 // before sending too, which trims tokens and speeds uploads.
-const WEB_SEARCH_MAX = Number(process.env.WEB_SEARCH_MAX_USES) || 6;
+const WEB_SEARCH_MAX = Number(process.env.WEB_SEARCH_MAX_USES) || 4;
 // 1536px keeps fine detail (hardware, heat stamps, silhouette) needed to tell similar models
 // apart — images are token-capped by the API anyway, so this barely moves cost vs 1024.
 const SEND_IMG_MAX_PX = Number(process.env.SEND_IMG_MAX_PX) || 1536;
@@ -573,9 +573,13 @@ the category-appropriate checks below. Your job:
      • Shoes: model, size, material/colourway.
      • Clothing: garment type, size, material, collection/season if identifiable.
    Use any visible stamps, serial/reference numbers, hallmarks or date codes. If uncertain, say so
-   and give a best guess with a confidence level. ALWAYS use web_search to check the brand's OFFICIAL
-   website to confirm the exact model name/reference and spec — prefer the IRELAND (IE) or nearest
-   euro-zone/EU store. Treat the official site as the source of truth over resale listings or blogs.
+   and give a best guess with a confidence level.
+   SEARCH BUDGET — you have only a few web searches, so SPEND THEM ON PRICE, not on identification.
+   When the Google Lens matches or the user's note already give you the model (they usually will),
+   trust that and do NOT waste a search re-confirming the ID — go straight to finding the current
+   EURO RRP and resale prices. Only use a search to confirm identity if the model is genuinely
+   unclear from the photos, the note and the Lens matches. When you do need the RRP, check the
+   brand's OFFICIAL site (Ireland/EU) — treat it as the source of truth over resale listings.
    MODEL DISAMBIGUATION — many designer lines have several models that look alike in the same
    material (e.g. Louis Vuitton Damier totes: Westminster vs Iéna vs Neverfull; Chanel Classic
    Flap vs Coco Handle). Do NOT lock onto the first plausible name. When two or more models could
