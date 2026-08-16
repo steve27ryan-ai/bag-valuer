@@ -84,7 +84,10 @@
     transition: background 0.25s;
   }
   .drop:hover, .drop.drag { background: var(--pearl); }
-  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  /* Fully hide the file input (not just opacity:0) — iOS Safari otherwise paints the native
+     control as a grey box. The drop zone is a <label>, so click-to-choose still works. */
+  .drop input { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0;
+    opacity: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); }
   .drop-icon { font-size: 2.2rem; margin-bottom: 12px; opacity: 0.5; }
   .drop-title { font-family: "Cormorant Garamond", serif; font-size: 1.4rem; font-weight: 400; }
   .drop-hint { font-size: 0.78rem; color: var(--stone); margin-top: 6px; }
