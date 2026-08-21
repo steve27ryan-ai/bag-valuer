@@ -671,6 +671,11 @@ the category-appropriate checks below. Your job:
    jewellery → Vestiaire, The RealReal, Fashionphile, Rebag, 1stDibs; watches → Chrono24, WatchCharts,
    Bob's Watches, auction results; shoes/trainers → StockX, GOAT, Vestiaire.
 5. Produce a RESALE PRICE ESTIMATE as a range, and show how it shifts by condition grade.
+6. MEASUREMENTS — for HANDBAGS, WALLETS, small leather goods and ACCESSORIES only, give the item's
+   dimensions in CENTIMETRES once you've identified the exact model: width, height and depth (these
+   are published by the brand and by resale listings — search for them if needed). Put them in the
+   "measurements" object with unit "cm". For WATCHES, JEWELLERY, SHOES and CLOTHING, set width/height/
+   depth to null (they are sized differently — case mm, ring size, EU shoe size, garment size).
 
 Use web_search several times (retail price; then resale comps on the major platforms). Give ALL
 prices in EUR (euros). If a source lists a price in another currency, convert it to euros and use
@@ -711,6 +716,7 @@ when genuinely unknown):
     { "grade": "Very Good", "low": null, "high": null },
     { "grade": "Good", "low": null, "high": null }
   ],
+  "measurements": { "unit": "cm", "width": null, "height": null, "depth": null },
   "sources": [ "" ],
   "summary": ""
 }

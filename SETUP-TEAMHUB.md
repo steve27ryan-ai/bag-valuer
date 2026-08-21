@@ -57,9 +57,28 @@ create table if not exists intakes (
   created_at timestamptz default now()
 );
 alter table intakes enable row level security;
+
+-- Usage log (cost per valuation — used to work out the real average cost per search)
+create table if not exists usage_events (
+  id uuid primary key,
+  kind text,
+  input_tokens integer,
+  output_tokens integer,
+  web_searches integer,
+  cost_usd numeric,
+  cost_eur numeric,
+  brand text,
+  model_item text,
+  created_at timestamptz default now()
+);
+alter table usage_events enable row level security;
 ```
 
 You should see "Success. No rows returned." — that's correct.
+
+> **Note:** the `usage_events` table is optional. Without it the app still logs the cost
+> of every valuation to the server log (Render → Logs) and to a local file — but adding the
+> table means the running average survives restarts and shows up in the cost summary.
 
 ## Step 2 — (Optional) set the starting team
 
