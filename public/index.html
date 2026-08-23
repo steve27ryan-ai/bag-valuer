@@ -1715,7 +1715,7 @@
       note.className = "offer-note";
       note.innerHTML =
         "<strong>Store-owned.</strong> Check the item's cost in Liberty Cloud (resaleworld.com) and enter it below. " +
-        "Aim to keep <strong>at least 20% over cost</strong> for Siopaella.";
+        "Aim to keep <strong>at least 40% over cost</strong> for Siopaella.";
     }
   }
 
@@ -1762,8 +1762,8 @@
       big.classList.toggle("neg", profit < 0);
       marg.textContent = c > 0 ? Math.round(overCost) + "% over cost" : "";
       if (profit <= 0) { v.textContent = "You'd make a loss"; v.className = "of-verdict bad"; }
-      else if (overCost < 20) { v.textContent = "Below the 20% floor"; v.className = "of-verdict warn"; }
-      else { v.textContent = "Above the 20% floor"; v.className = "of-verdict good"; }
+      else if (overCost < 40) { v.textContent = "Below the 40% floor"; v.className = "of-verdict warn"; }
+      else { v.textContent = "Above the 40% floor"; v.className = "of-verdict good"; }
       rows.innerHTML =
         ofRow("Discount off ticket", discTxt) +
         ofRow("Margin on sale", Math.round(marginSale) + "%") +
