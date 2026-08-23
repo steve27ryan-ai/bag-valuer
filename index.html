@@ -84,7 +84,9 @@
     transition: background 0.25s;
   }
   .drop:hover, .drop.drag { background: var(--pearl); }
-  .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  /* display:none so iOS Safari can't paint the native file control (it did, even at opacity:0).
+     The drop zone opens the picker via a JS click handler instead. */
+  .drop input { display: none; }
   .drop-icon { font-size: 2.2rem; margin-bottom: 12px; opacity: 0.5; }
   .drop-title { font-family: "Cormorant Garamond", serif; font-size: 1.4rem; font-weight: 400; }
   .drop-hint { font-size: 0.78rem; color: var(--stone); margin-top: 6px; }
@@ -192,6 +194,47 @@
   .block { background: var(--white); border-top: 2px solid var(--border); padding: 28px 34px; }
   .block h3 { font-size: 0.57rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--bronze); margin-bottom: 14px; font-weight: 400; }
   .grade { font-family: "Cormorant Garamond", serif; font-size: 1.5rem; }
+  .meas-h { display: flex; justify-content: space-between; align-items: center; }
+  .meas-tog { display: inline-flex; background: var(--pearl); border: 1px solid var(--sand); border-radius: 999px; padding: 2px; }
+  .meas-tog .mtog { border: none; background: none; cursor: pointer; font-family: "Jost"; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); padding: 4px 10px; border-radius: 999px; }
+  .meas-tog .mtog.on { background: var(--espresso); color: var(--pearl); }
+  .meas-grid { display: flex; gap: 10px; }
+  .mcell { flex: 1; background: var(--white); border: 1px solid var(--border); padding: 14px 10px; text-align: center; }
+  .mcell .ml { display: block; font-size: 0.55rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--bronze); }
+  .mcell .mv { display: block; font-family: "Cormorant Garamond", serif; font-size: 1.3rem; color: var(--espresso); margin-top: 6px; white-space: nowrap; }
+
+  /* Offer calculator */
+  .offer-intro { text-align: center; margin-bottom: 26px; }
+  .offer-intro h2 { font-family: "Cormorant Garamond", serif; font-weight: 300; font-size: 2rem; color: var(--espresso); }
+  .offer-intro p { color: var(--stone); font-size: 0.9rem; margin-top: 8px; max-width: 34ch; margin-left: auto; margin-right: auto; }
+  .offer-card { background: var(--white); border: 1px solid var(--border); padding: 26px 24px; display: flex; flex-direction: column; gap: 18px; }
+  .offer-field label { display: block; font-size: 0.57rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--bronze); margin-bottom: 8px; }
+  .euro { display: flex; align-items: center; border: 1px solid var(--sand); background: var(--ivory); }
+  .euro span { padding: 0 12px; color: var(--stone); font-family: "Cormorant Garamond", serif; font-size: 1.4rem; }
+  .euro input { flex: 1; border: none; background: none; padding: 13px 12px 13px 0; font-family: "Cormorant Garamond", serif; font-size: 1.5rem; color: var(--espresso); outline: none; width: 100%; }
+  .offer-sub { font-size: 0.72rem; color: var(--faint, #A69C8C); margin-top: 6px; }
+  .own-seg { display: flex; width: 100%; }
+  .own-seg .seg-btn { flex: 1; }
+  .offer-hint { color: var(--stone); font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 0.66rem; }
+  .offer-note { font-size: 0.8rem; line-height: 1.55; color: var(--stone); background: var(--pearl); border: 1px solid var(--sand); padding: 14px 16px; }
+  .offer-note.warn { background: #FBF3E4; border-color: #E8D3A0; color: #6b5a2f; }
+  .offer-note strong { color: var(--espresso); }
+  .offer-result { margin-top: 18px; }
+  .offer-result[hidden] { display: none; }
+  .of-head { background: var(--pearl); border: 1px solid var(--sand); padding: 24px; text-align: center; }
+  .of-lab { font-size: 0.57rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--bronze); }
+  .of-big { font-family: "Cormorant Garamond", serif; font-size: 2.8rem; line-height: 1; margin-top: 8px; color: var(--espresso); }
+  .of-big.neg { color: #8a3b3b; }
+  .of-margin { font-size: 0.9rem; color: var(--stone); margin-top: 6px; }
+  .of-verdict { display: inline-block; margin-top: 12px; font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; padding: 5px 12px; border-radius: 999px; }
+  .of-verdict.good { background: #EEF4EC; color: #3f6b3d; }
+  .of-verdict.warn { background: #FBF3E4; color: #8a6d1f; }
+  .of-verdict.bad { background: #F6ECEC; color: #8a3b3b; }
+  .of-rows { margin-top: 14px; background: var(--white); border: 1px solid var(--border); }
+  .of-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 18px; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
+  .of-row:last-child { border-bottom: none; }
+  .of-row span { color: var(--stone); }
+  .of-row b { font-family: "Cormorant Garamond", serif; font-size: 1.15rem; color: var(--espresso); }
   .block p { font-size: 0.86rem; color: var(--ink); }
 
   table.cond { width: 100%; border-collapse: collapse; margin-top: 6px; }
@@ -491,7 +534,7 @@
   .breview-rm { background: none; border: none; color: var(--bronze-pale); cursor: pointer; font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
   .breview-rm:hover { color: #b45; }
   .breview-fail { color: #8a3b3b; font-size: 0.82rem; }
-  .breview-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .breview-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
   .again { text-align: center; margin-top: 24px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   .again button { background: none; border: 1px solid var(--bronze); color: var(--bronze-deep); padding: 0.8rem 2rem; font-family: "Jost"; font-size: 0.66rem; letter-spacing: 0.22em; text-transform: uppercase; cursor: pointer; transition: background 0.3s, color 0.3s; }
@@ -532,6 +575,7 @@
 
   <nav class="tabs" id="tabs" hidden>
     <button class="tab active" id="tabValue" type="button">New valuation</button>
+    <button class="tab" id="tabOffer" type="button">Offer calc</button>
     <button class="tab" id="tabHistory" type="button" hidden>History</button>
     <button class="tab" id="tabTasks" type="button">Tasks</button>
   </nav>
@@ -560,16 +604,16 @@
   </div>
 
   <div class="card">
-    <label class="drop" id="drop">
+    <div class="drop" id="drop">
       <input type="file" id="file" accept="image/*" multiple />
       <div class="drop-icon">◈</div>
-      <div class="drop-title">Drop photos here, or click to choose</div>
-      <div class="drop-hint">Up to 6 · JPG or PNG · clear, well-lit shots work best</div>
-    </label>
+      <div class="drop-title">Drop a photo here, or click to choose</div>
+      <div class="drop-hint">1 JPG or PNG · a clear, well-lit shot works best</div>
+    </div>
 
     <div class="preview-wrap" id="previewWrap">
       <div class="thumbs" id="thumbs"></div>
-      <p class="angle-hint">Tip: add several angles of the <em>same</em> item, plus its key detail shots — a bag's date stamp &amp; interior, a watch's caseback &amp; serial, jewellery hallmarks, a shoe's insole &amp; sole. More angles = a sharper ID, condition and authenticity read.</p>
+      <p class="angle-hint">Tip: <em>one</em> clear photo of the front is all it needs. Then describe the <em>condition</em> — and the model, if you know it — in the box below.</p>
       <div class="note-field">
         <label>Consignor (optional)</label>
         <div class="seller-row">
@@ -599,15 +643,57 @@
   <div id="batchReview" hidden>
     <div class="breview-head">
       <span class="breview-title">Batch results · <span id="breviewCount">0</span></span>
-      <p class="breview-sub">Check each item and adjust the sale price, then add them to the seller intake. Batch values are quick estimates from one photo — re-run high-value or doubtful items in Single mode for a full condition &amp; authenticity check.</p>
+      <p class="breview-sub">Check each item and adjust the sale price, then <b>Save all to history now</b> (fill in the consignor name/account above first), or <b>Add to intake</b> to combine with more items before saving. Batch values are quick estimates from one photo — re-run high-value or doubtful items in Single mode for a full condition &amp; authenticity check.</p>
     </div>
     <div class="breview-list" id="breviewList"></div>
     <div class="breview-actions">
       <button type="button" class="again-outline" id="breviewCancel">Discard</button>
-      <button type="button" class="again-solid" id="breviewAddAll">Add all to intake</button>
+      <button type="button" class="again-outline" id="breviewAddAll">Add to intake</button>
+      <button type="button" class="again-solid" id="breviewSaveAll">Save all to history now</button>
     </div>
   </div>
   </div><!-- /valuationView -->
+
+  <div id="offerView" hidden>
+    <div class="offer-intro">
+      <h2>Offer calculator</h2>
+      <p>A customer's offered a price in store? First check the item's ownership in Liberty, then work out the offer.</p>
+    </div>
+    <div class="offer-card">
+      <div class="offer-field">
+        <label>Is the item store-owned or on consignment?</label>
+        <div class="seg own-seg" id="ofOwn">
+          <button type="button" class="seg-btn active" data-own="store">Store-owned</button>
+          <button type="button" class="seg-btn" data-own="consign">Consignor-owned</button>
+        </div>
+      </div>
+
+      <div class="offer-note" id="ofNote"></div>
+
+      <div class="offer-field">
+        <label>Ticket price</label>
+        <div class="euro"><span>€</span><input id="ofTicket" type="number" inputmode="decimal" step="any" placeholder="0" /></div>
+      </div>
+      <div class="offer-field">
+        <label>Offered price</label>
+        <div class="euro"><span>€</span><input id="ofOffer" type="number" inputmode="decimal" step="any" placeholder="0" /></div>
+      </div>
+      <div class="offer-field" id="ofCostField">
+        <label>Our cost <span class="offer-hint">(check Liberty Cloud)</span></label>
+        <div class="euro"><span>€</span><input id="ofCost" type="number" inputmode="decimal" step="any" placeholder="0" /></div>
+      </div>
+    </div>
+
+    <div class="offer-result" id="ofResult" hidden>
+      <div class="of-head">
+        <div class="of-lab" id="ofLab">Siopaella makes on this offer</div>
+        <div class="of-big" id="ofProfit">—</div>
+        <div class="of-margin" id="ofMargin"></div>
+        <div class="of-verdict" id="ofVerdict"></div>
+      </div>
+      <div class="of-rows" id="ofRows"></div>
+    </div>
+  </div>
 
   <div id="historyView" hidden>
     <div class="seg hist-modes" id="histModes">
@@ -802,8 +888,8 @@
       // Per-item note boxes replace the shared note in batch mode.
       if (noteField) noteField.hidden = true;
     } else {
-      dropTitle.textContent = "Drop photos here, or click to choose";
-      dropHint.textContent = "Up to 6 · JPG or PNG · clear, well-lit shots work best";
+      dropTitle.textContent = "Drop a photo here, or click to choose";
+      dropHint.textContent = "1 JPG or PNG · a clear, well-lit shot works best";
       if (angleHint) angleHint.hidden = false;
       if (noteField) noteField.hidden = false;
     }
@@ -811,6 +897,8 @@
   }
 
   fileInput.addEventListener("change", (e) => { addFiles(e.target.files); fileInput.value = ""; });
+  // The drop zone is a <div> now (not a <label>), so open the picker on tap ourselves.
+  drop.addEventListener("click", () => fileInput.click());
   ["dragover", "dragenter"].forEach((ev) =>
     drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("drag"); })
   );
@@ -983,6 +1071,42 @@
     renderIntake();
     batchReview.hidden = true;
     reset();
+  };
+  // One-tap: save the whole batch straight to History → Intakes (no separate save step).
+  document.getElementById("breviewSaveAll").onclick = async () => {
+    if (!batchItems.length) return;
+    const btn = document.getElementById("breviewSaveAll");
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    try {
+      const meta = intakeMeta();
+      const items = batchItems.map((e) => lineFor(e.name, e.price));
+      const r = await fetch("/api/intakes", {
+        method: "POST",
+        headers: taskHeaders(true),
+        body: JSON.stringify({
+          consignor_name: meta.consignor,
+          account_number: meta.account,
+          items,
+          created_by: currentUser || null,
+        }),
+      });
+      if (r.status === 401) { relock(); return; }
+      if (!r.ok) throw new Error("save failed");
+      btn.textContent = "Saved ✓";
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.disabled = false;
+        batchItems = [];
+        batchReview.hidden = true;
+        reset();
+      }, 1100);
+    } catch (e) {
+      btn.textContent = "Couldn't save — try again";
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = orig; }, 2500);
+    }
   };
   document.getElementById("breviewCancel").onclick = () => { batchReview.hidden = true; reset(); };
 
@@ -1278,6 +1402,36 @@
   }
   renderIntake();
 
+  // Measurements block (bags/wallets/accessories) with a cm/inch toggle. Empty for watches/jewellery.
+  function measurementsHtml(d) {
+    const m = d.measurements || {};
+    const dims = [["Width", m.width], ["Height", m.height], ["Depth", m.depth]]
+      .filter((x) => typeof x[1] === "number");
+    if (!dims.length) return "";
+    const cells = dims
+      .map((x, i) => '<div class="mcell"><span class="ml">' + x[0] + '</span><span class="mv" data-i="' + i + '">—</span></div>')
+      .join("");
+    return '<div class="block measblock" data-cm=\'' + JSON.stringify(dims.map((x) => x[1])) + '\'>' +
+      '<h3 class="meas-h">Measurements' +
+        '<span class="meas-tog"><button type="button" class="mtog on" data-u="cm">cm</button>' +
+        '<button type="button" class="mtog" data-u="in">in</button></span></h3>' +
+      '<div class="meas-grid">' + cells + "</div></div>";
+  }
+  function wireMeasurements(container) {
+    container.querySelectorAll(".measblock").forEach((block) => {
+      const cm = JSON.parse(block.getAttribute("data-cm") || "[]");
+      const draw = (unit) => {
+        block.querySelectorAll(".mv").forEach((el) => {
+          const c = cm[+el.dataset.i];
+          el.textContent = (unit === "in" ? (c / 2.54).toFixed(1) : c) + " " + unit;
+        });
+        block.querySelectorAll(".mtog").forEach((b) => b.classList.toggle("on", b.dataset.u === unit));
+      };
+      block.querySelectorAll(".mtog").forEach((b) => (b.onclick = () => draw(b.dataset.u)));
+      draw("cm");
+    });
+  }
+
   function buildResults(payload, opts) {
     opts = opts || {};
     const d = payload.data;
@@ -1399,6 +1553,8 @@
         (d.condition_notes ? "<p style='margin-top:8px'>" + escapeHtml(d.condition_notes) + "</p>" : "") +
       "</div>" +
 
+      measurementsHtml(d) +
+
       authHtml +
 
       (condRows
@@ -1438,6 +1594,7 @@
     currentValuation = payload.data || null;
     results.innerHTML = buildResults(payload, { showReset: true, savedId: payload.savedId });
     wireSplit(results);
+    wireMeasurements(results);
     results.classList.add("show");
     results.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -1460,8 +1617,10 @@
   // ── History tab ───────────────────────────────────────────────
   const tabsNav = document.getElementById("tabs");
   const tabValue = document.getElementById("tabValue");
+  const tabOffer = document.getElementById("tabOffer");
   const tabHistory = document.getElementById("tabHistory");
   const valuationView = document.getElementById("valuationView");
+  const offerView = document.getElementById("offerView");
   const historyView = document.getElementById("historyView");
   const histStatus = document.getElementById("histStatus");
   const histList = document.getElementById("histList");
@@ -1480,8 +1639,19 @@
     tabsNav.hidden = false; // Tasks is always available, so the nav always shows
     tabHistory.hidden = !historyEnabled;
     tabValue.onclick = () => showTab("value");
+    tabOffer.onclick = () => showTab("offer");
     tabHistory.onclick = () => showTab("history");
     tabTasks.onclick = () => showTab("tasks");
+    ["ofTicket", "ofOffer", "ofCost"].forEach((id) => (document.getElementById(id).oninput = calcOffer));
+    document.querySelectorAll("#ofOwn .seg-btn").forEach((b) =>
+      (b.onclick = () => {
+        offerOwn = b.dataset.own;
+        document.querySelectorAll("#ofOwn .seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+        offerNote();
+        calcOffer();
+      })
+    );
+    offerNote();
     histBack.onclick = () => {
       histDetail.hidden = true;
       histList.hidden = false;
@@ -1512,14 +1682,93 @@
     const isHist = which === "history";
     const isTasks = which === "tasks";
     const isValue = which === "value";
+    const isOffer = which === "offer";
     tabValue.classList.toggle("active", isValue);
+    tabOffer.classList.toggle("active", isOffer);
     tabHistory.classList.toggle("active", isHist);
     tabTasks.classList.toggle("active", isTasks);
     valuationView.hidden = !isValue;
+    offerView.hidden = !isOffer;
     historyView.hidden = !isHist;
     tasksView.hidden = !isTasks;
     if (isHist) loadHistoryMode();
     if (isTasks) openTasks();
+  }
+
+  // Offer calculator — branches on ownership. Store-owned: profit vs Liberty cost (20% floor).
+  // Consignor-owned: Siopaella's commission from the split band + the discount-authorisation rule.
+  let offerOwn = "store";
+  const ofRow = (k, val) => '<div class="of-row"><span>' + k + "</span><b>" + val + "</b></div>";
+
+  function offerNote() {
+    const note = document.getElementById("ofNote");
+    const costField = document.getElementById("ofCostField");
+    if (offerOwn === "consign") {
+      costField.style.display = "none";
+      note.className = "offer-note warn";
+      note.innerHTML =
+        "<strong>⚠ Consignor-owned — check Liberty first.</strong> Did the consignor authorise a discount " +
+        "(up to 10%) at intake? If yes, apply up to 10% freely. If not, get a <strong>solid, specific offer</strong> " +
+        'from the buyer, then WhatsApp or phone the consignor with that exact figure — never a vague "what\'s your lowest".';
+    } else {
+      costField.style.display = "";
+      note.className = "offer-note";
+      note.innerHTML =
+        "<strong>Store-owned.</strong> Check the item's cost in Liberty Cloud (resaleworld.com) and enter it below. " +
+        "Aim to keep <strong>at least 40% over cost</strong> for Siopaella.";
+    }
+  }
+
+  function calcOffer() {
+    const t = parseFloat(document.getElementById("ofTicket").value);
+    const o = parseFloat(document.getElementById("ofOffer").value);
+    const res = document.getElementById("ofResult");
+    const big = document.getElementById("ofProfit");
+    const lab = document.getElementById("ofLab");
+    const marg = document.getElementById("ofMargin");
+    const v = document.getElementById("ofVerdict");
+    const rows = document.getElementById("ofRows");
+    const hasT = !isNaN(t) && t > 0;
+    const discTxt = hasT ? Math.round(((t - o) / t) * 100) + "%  ·  " + money(t - o, "EUR") : "—";
+
+    if (offerOwn === "consign") {
+      const ready = !isNaN(o) && o > 0;
+      res.hidden = !ready;
+      if (!ready) return;
+      const s = splitFor(o);
+      const commission = (o * s.pct) / 100;
+      lab.textContent = "Siopaella keeps (commission)";
+      big.textContent = money(commission, "EUR");
+      big.classList.remove("neg");
+      marg.textContent = s.pct + "% commission · band " + s.code;
+      const disc = hasT ? ((t - o) / t) * 100 : 0;
+      if (hasT && disc > 10) { v.textContent = "Over 10% off — the consignor must authorise this"; v.className = "of-verdict warn"; }
+      else if (hasT && disc > 0.5) { v.textContent = "≤10% — OK only if pre-authorised in Liberty"; v.className = "of-verdict good"; }
+      else { v.textContent = "No discount off ticket"; v.className = "of-verdict good"; }
+      rows.innerHTML =
+        ofRow("Consignor payout", money(o - commission, "EUR")) +
+        ofRow("Discount off ticket", discTxt) +
+        ofRow("Commission band", s.pct + "% (" + s.code + ")");
+    } else {
+      const c = parseFloat(document.getElementById("ofCost").value);
+      const ready = !isNaN(o) && !isNaN(c);
+      res.hidden = !ready;
+      if (!ready) return;
+      const profit = o - c;
+      const overCost = c > 0 ? (profit / c) * 100 : 0;
+      const marginSale = o > 0 ? (profit / o) * 100 : 0;
+      lab.textContent = "Siopaella makes on this offer";
+      big.textContent = money(profit, "EUR");
+      big.classList.toggle("neg", profit < 0);
+      marg.textContent = c > 0 ? Math.round(overCost) + "% over cost" : "";
+      if (profit <= 0) { v.textContent = "You'd make a loss"; v.className = "of-verdict bad"; }
+      else if (overCost < 40) { v.textContent = "Below the 40% floor"; v.className = "of-verdict warn"; }
+      else { v.textContent = "Above the 40% floor"; v.className = "of-verdict good"; }
+      rows.innerHTML =
+        ofRow("Discount off ticket", discTxt) +
+        ofRow("Margin on sale", Math.round(marginSale) + "%") +
+        (hasT ? ofRow("Profit at full ticket", money(t - c, "EUR") + "  ·  " + Math.round(((t - c) / t) * 100) + "% over cost") : "");
+    }
   }
 
   function relock() {
@@ -1741,6 +1990,7 @@
     currentValuation = it.data || null;
     histResults.innerHTML = buildResults({ data: it.data }, { showReset: false });
     wireSplit(histResults);
+    wireMeasurements(histResults);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   // ──────────────────────────────────────────────────────────────
