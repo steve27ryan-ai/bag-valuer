@@ -607,8 +607,8 @@
     <div class="drop" id="drop">
       <input type="file" id="file" accept="image/*" multiple />
       <div class="drop-icon">◈</div>
-      <div class="drop-title">Drop photos here, or click to choose</div>
-      <div class="drop-hint">Up to 6 · JPG or PNG · clear, well-lit shots work best</div>
+      <div class="drop-title">Drop a photo here, or click to choose</div>
+      <div class="drop-hint">1 JPG or PNG · a clear, well-lit shot works best</div>
     </div>
 
     <div class="preview-wrap" id="previewWrap">
@@ -888,8 +888,8 @@
       // Per-item note boxes replace the shared note in batch mode.
       if (noteField) noteField.hidden = true;
     } else {
-      dropTitle.textContent = "Drop photos here, or click to choose";
-      dropHint.textContent = "Up to 6 · JPG or PNG · clear, well-lit shots work best";
+      dropTitle.textContent = "Drop a photo here, or click to choose";
+      dropHint.textContent = "1 JPG or PNG · a clear, well-lit shot works best";
       if (angleHint) angleHint.hidden = false;
       if (noteField) noteField.hidden = false;
     }
@@ -1695,7 +1695,7 @@
     if (isTasks) openTasks();
   }
 
-  // Offer calculator — branches on ownership. Store-owned: profit vs Liberty cost (20% floor).
+  // Offer calculator — branches on ownership. Store-owned: profit vs Liberty cost (40% floor).
   // Consignor-owned: Siopaella's commission from the split band + the discount-authorisation rule.
   let offerOwn = "store";
   const ofRow = (k, val) => '<div class="of-row"><span>' + k + "</span><b>" + val + "</b></div>";
