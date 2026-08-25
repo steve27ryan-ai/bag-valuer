@@ -467,6 +467,33 @@
     border: 1px solid var(--border); color: var(--stone); background: none; cursor: pointer; font-family: "Jost"; }
   .pill.doing { border-color: var(--bronze); color: var(--bronze-deep); }
   .pill.done { border-color: #9bb39b; color: #3f6b3f; }
+  .chip.donetime { background: #eef4ec; color: #3f6b3f; text-transform: none; letter-spacing: 0.02em; }
+
+  /* Tasks — daily history */
+  .history-panel { max-width: 560px; }
+  .hist-intro { font-size: 0.8rem; color: var(--stone); line-height: 1.6; margin-bottom: 14px; }
+  .hist-days { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+  .hist-day { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; width: 100%;
+    text-align: left; padding: 11px 13px; background: var(--ivory); border: 1px solid var(--border);
+    cursor: pointer; font-family: "Jost"; color: var(--espresso); }
+  .hist-day:hover { background: var(--pearl); }
+  .hist-day.active { border-color: var(--bronze); background: var(--pearl); }
+  .hist-day .hd-date { font-size: 0.9rem; }
+  .hist-day .hd-sum { font-size: 0.72rem; color: var(--stone); white-space: nowrap; }
+  .hist-day .hd-sum b { color: #3f6b3f; font-weight: 600; }
+  .hist-days .hist-empty { color: var(--bronze-pale); font-size: 0.82rem; padding: 10px 2px; }
+  .hist-detail { border-top: 1px solid var(--border); padding-top: 14px; margin-bottom: 12px; }
+  .hist-detail .hd-head { font-family: "Cormorant Garamond", serif; font-size: 1.15rem; margin-bottom: 10px; }
+  .hist-row { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-row .hr-st { font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border: 1px solid var(--border); color: var(--stone); flex-shrink: 0; }
+  .hist-row .hr-st.doing { border-color: var(--bronze); color: var(--bronze-deep); }
+  .hist-row .hr-st.done { border-color: #9bb39b; color: #3f6b3f; }
+  .hist-row .hr-ttl { flex: 1; color: var(--ink); }
+  .hist-row.is-done .hr-ttl { text-decoration: line-through; color: var(--stone); }
+  .hist-row .hr-who { color: var(--stone); font-size: 0.75rem; white-space: nowrap; }
+  .hist-row .hr-time { color: #3f6b3f; font-size: 0.75rem; white-space: nowrap; }
+  .hist-grp { font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bronze); margin: 12px 0 4px; }
 
   /* Authenticity */
   .auth-warn { background: #fbf3e2; border: 1px solid #e8d59e; color: #7a5f1f; font-size: 0.82rem;
@@ -724,6 +751,7 @@
         <div class="tasks-you">You: <strong id="youName">—</strong>
           <button class="linkbtn" id="switchUser" type="button">switch</button>
           <button class="linkbtn" id="manageTeam" type="button">manage team</button>
+          <button class="linkbtn" id="historyBtn" type="button">history</button>
         </div>
         <div class="tasks-controls">
           <div class="seg" id="taskFilter">
@@ -743,6 +771,14 @@
         </form>
         <div class="manage-err" id="manageErr"></div>
         <button class="linkbtn" id="manageClose" type="button">Close</button>
+      </div>
+
+      <div class="manage history-panel" id="historyPanel" hidden>
+        <div class="manage-title">Daily history</div>
+        <div class="hist-intro">Each day's board is saved automatically. Tap a day to see exactly how it looked, with the time each task was marked done.</div>
+        <div class="hist-days" id="historyList">Loading…</div>
+        <div class="hist-detail" id="historyDetail" hidden></div>
+        <button class="linkbtn" id="historyClose" type="button">Close</button>
       </div>
 
       <form class="task-form" id="taskForm" hidden>
@@ -2104,6 +2140,11 @@
   const newMember = document.getElementById("newMember");
   const manageErr = document.getElementById("manageErr");
   const manageClose = document.getElementById("manageClose");
+  const historyBtn = document.getElementById("historyBtn");
+  const historyPanel = document.getElementById("historyPanel");
+  const historyList = document.getElementById("historyList");
+  const historyDetail = document.getElementById("historyDetail");
+  const historyClose = document.getElementById("historyClose");
 
   const STAFF_KEY = "bagvaluer_staff";
   let currentUser = localStorage.getItem(STAFF_KEY) || "";
@@ -2136,8 +2177,10 @@
 
   function setupTasks() {
     populateStaffControls();
-    manageTeam.onclick = () => { managePanel.hidden = false; manageErr.textContent = ""; renderManageList(); };
+    manageTeam.onclick = () => { historyPanel.hidden = true; managePanel.hidden = false; manageErr.textContent = ""; renderManageList(); };
     manageClose.onclick = () => { managePanel.hidden = true; };
+    historyBtn.onclick = () => { managePanel.hidden = true; taskForm.hidden = true; openHistory(); };
+    historyClose.onclick = () => { historyPanel.hidden = true; };
     manageAdd.onsubmit = onAddMember;
     switchUser.onclick = () => {
       currentUser = "";
@@ -2314,6 +2357,9 @@
     const dueHtml = t.due_date
       ? '<span class="chip due ' + dueClass(t.due_date) + '">' + escapeHtml(dueLabel(t.due_date)) + "</span>"
       : "";
+    const doneHtml = t.status === "done" && t.completed_at
+      ? '<span class="chip donetime">✓ ' + escapeHtml(doneTimeLabel(t.completed_at)) + "</span>"
+      : "";
     const priLabel = { high: "High", med: "Med", low: "Low" }[t.priority] || "Med";
     const statusLabel = { todo: "To do", doing: "Doing", done: "Done" }[t.status] || "To do";
     const statusCls = t.status === "doing" ? "doing" : t.status === "done" ? "done" : "";
@@ -2331,7 +2377,7 @@
       '<button class="rm" data-act="del" title="Delete" aria-label="Delete task">×</button>' +
       '<div class="ttl" data-act="edit">' + escapeHtml(t.title) + "</div>" +
       thumbsHtml +
-      '<div class="meta">' + dueHtml +
+      '<div class="meta">' + dueHtml + doneHtml +
       '<span class="pri"><span class="dot ' + (t.priority || "med") + '"></span>' + priLabel + "</span>" +
       '<button class="pill ' + statusCls + '" data-act="status" title="Tap to change">' + statusLabel + "</button>" +
       "</div></div>"
@@ -2339,6 +2385,7 @@
   }
 
   function openTaskForm(task) {
+    historyPanel.hidden = true;
     editingId = task ? task.id : null;
     tfTitle.value = task ? task.title : "";
     tfAssignee.value = task ? task.assignee : currentUser || staffList[0] || "";
@@ -2412,6 +2459,102 @@
     const r = await fetch("/api/tasks/" + task.id, { method: "DELETE", headers: taskHeaders() });
     if (r.status === 401) { relock(); return; }
     await loadTasks();
+  }
+
+  // ── Daily history (completion times + saved days) ─────────────
+  function dublinToday() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Dublin" }).format(new Date());
+  }
+  function dublinTime(iso) {
+    try {
+      return new Intl.DateTimeFormat("en-IE", { timeZone: "Europe/Dublin", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso));
+    } catch { return ""; }
+  }
+  function doneTimeLabel(iso) {
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Dublin" }).format(new Date(iso));
+    const time = dublinTime(iso);
+    if (day === dublinToday()) return time;
+    const dm = new Intl.DateTimeFormat("en-IE", { timeZone: "Europe/Dublin", day: "numeric", month: "short" }).format(new Date(iso));
+    return dm + " " + time;
+  }
+  function dayLabel(dateStr) {
+    const p = String(dateStr).split("-");
+    const dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12, 0, 0));
+    const label = new Intl.DateTimeFormat("en-IE", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(dt);
+    if (dateStr === dublinToday()) return "Today · " + label;
+    return label;
+  }
+
+  async function openHistory() {
+    historyPanel.hidden = false;
+    historyDetail.hidden = true;
+    historyDetail.innerHTML = "";
+    historyList.textContent = "Loading…";
+    try {
+      const r = await fetch("/api/tasks/snapshots", { headers: taskHeaders() });
+      if (r.status === 401) { relock(); return; }
+      const payload = await r.json();
+      renderSnapshotList(payload.snapshots || []);
+    } catch (e) {
+      historyList.textContent = "Couldn't load history.";
+    }
+  }
+
+  function renderSnapshotList(snaps) {
+    if (!snaps.length) {
+      historyList.innerHTML = '<div class="hist-empty">No days saved yet — as soon as you add or update a task, today\'s board is saved here.</div>';
+      return;
+    }
+    historyList.innerHTML = snaps.map((s) =>
+      '<button class="hist-day" type="button" data-date="' + escapeHtml(s.date) + '">' +
+      '<span class="hd-date">' + escapeHtml(dayLabel(s.date)) + "</span>" +
+      '<span class="hd-sum"><b>' + (s.done_count || 0) + " done</b> · " + (s.open_count || 0) + " open</span>" +
+      "</button>"
+    ).join("");
+    historyList.querySelectorAll(".hist-day").forEach((btn) => {
+      btn.onclick = () => {
+        historyList.querySelectorAll(".hist-day").forEach((x) => x.classList.toggle("active", x === btn));
+        viewSnapshot(btn.dataset.date);
+      };
+    });
+  }
+
+  async function viewSnapshot(date) {
+    historyDetail.hidden = false;
+    historyDetail.innerHTML = "Loading…";
+    try {
+      const r = await fetch("/api/tasks/snapshots/" + encodeURIComponent(date), { headers: taskHeaders() });
+      if (r.status === 401) { relock(); return; }
+      if (!r.ok) { historyDetail.innerHTML = '<div class="hist-empty">Couldn\'t open that day.</div>'; return; }
+      const payload = await r.json();
+      renderSnapshotDetail(payload.snapshot);
+    } catch (e) {
+      historyDetail.innerHTML = '<div class="hist-empty">Couldn\'t open that day.</div>';
+    }
+  }
+
+  function renderSnapshotDetail(snap) {
+    const tasks = Array.isArray(snap.data) ? snap.data.slice() : [];
+    const order = { done: 0, doing: 1, todo: 2 };
+    tasks.sort((a, b) =>
+      (order[a.status] ?? 3) - (order[b.status] ?? 3) ||
+      String(a.completed_at || "").localeCompare(String(b.completed_at || "")));
+    const rows = tasks.map((t) => {
+      const stCls = t.status === "done" ? "done" : t.status === "doing" ? "doing" : "";
+      const stLbl = { todo: "To do", doing: "Doing", done: "Done" }[t.status] || "To do";
+      const time = (t.status === "done" && t.completed_at)
+        ? '<span class="hr-time">✓ ' + escapeHtml(dublinTime(t.completed_at)) + "</span>" : "";
+      return '<div class="hist-row ' + (t.status === "done" ? "is-done" : "") + '">' +
+        '<span class="hr-st ' + stCls + '">' + stLbl + "</span>" +
+        '<span class="hr-ttl">' + escapeHtml(t.title || "Untitled") + "</span>" +
+        (t.assignee ? '<span class="hr-who">' + escapeHtml(t.assignee) + "</span>" : "") +
+        time + "</div>";
+    }).join("");
+    const doneN = tasks.filter((t) => t.status === "done").length;
+    historyDetail.innerHTML =
+      '<div class="hd-head">' + escapeHtml(dayLabel(snap.date)) + "</div>" +
+      '<div class="hist-grp">' + doneN + " of " + tasks.length + " completed</div>" +
+      (rows || '<div class="hist-empty">No tasks that day.</div>');
   }
 
   function initials(name) {
