@@ -424,6 +424,16 @@ function dublinDate(d = new Date()) {
   // en-CA formats as YYYY-MM-DD; Europe/Dublin keeps it on the shop's clock.
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Dublin" }).format(d);
 }
+
+// The live board shows everything still open, plus tasks completed TODAY. A task
+// finished on an earlier day drops off the board (it's preserved in that day's
+// snapshot in Daily history), so the board tidies itself each morning.
+function activeToday(tasks) {
+  const today = dublinDate();
+  return (tasks || []).filter(
+    (t) => !(t.status === "done" && t.completed_at && dublinDate(new Date(t.completed_at)) < today)
+  );
+}
 function snapsRead() {
   try {
     return existsSync(SNAPS_FILE) ? JSON.parse(readFileSync(SNAPS_FILE, "utf8")) : [];
@@ -439,7 +449,9 @@ const snapshotStore = {
   // Save (or refresh) today's snapshot from the live board. Called after every
   // change, so today's row always mirrors the board and freezes once the day rolls over.
   async saveToday() {
-    const tasks = await taskStore.list();
+    // Snapshot the board as it actually appears today (open + completed-today),
+    // matching what staff see — earlier days keep their own frozen snapshots.
+    const tasks = activeToday(await taskStore.list());
     const date = dublinDate();
     const done = tasks.filter((t) => t.status === "done").length;
     const total = tasks.length;
@@ -1285,7 +1297,7 @@ app.get("/api/serpapi-quota", requireCode, async (req, res) => {
 // ── Tasks API ─────────────────────────────────────────────────────
 app.get("/api/tasks", requireCode, async (req, res) => {
   try {
-    res.json({ tasks: await taskStore.list(), staff: await staffStore.list() });
+    res.json({ tasks: activeToday(await taskStore.list()), staff: await staffStore.list() });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
