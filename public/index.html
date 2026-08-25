@@ -1731,7 +1731,7 @@
     if (isTasks) openTasks();
   }
 
-  // Offer calculator — branches on ownership. Store-owned: profit vs Liberty cost (40% floor).
+  // Offer calculator — branches on ownership. Store-owned: profit vs Liberty cost (30% margin floor).
   // Consignor-owned: Siopaella's commission from the split band + the discount-authorisation rule.
   let offerOwn = "store";
   const ofRow = (k, val) => '<div class="of-row"><span>' + k + "</span><b>" + val + "</b></div>";
@@ -1751,7 +1751,7 @@
       note.className = "offer-note";
       note.innerHTML =
         "<strong>Store-owned.</strong> Check the item's cost in Liberty Cloud (resaleworld.com) and enter it below. " +
-        "Aim to keep <strong>at least 40% over cost</strong> for Siopaella.";
+        "Aim to keep <strong>at least a 30% margin</strong> for Siopaella.";
     }
   }
 
@@ -1791,19 +1791,18 @@
       res.hidden = !ready;
       if (!ready) return;
       const profit = o - c;
-      const overCost = c > 0 ? (profit / c) * 100 : 0;
       const marginSale = o > 0 ? (profit / o) * 100 : 0;
       lab.textContent = "Siopaella makes on this offer";
       big.textContent = money(profit, "EUR");
       big.classList.toggle("neg", profit < 0);
-      marg.textContent = c > 0 ? Math.round(overCost) + "% over cost" : "";
+      marg.textContent = o > 0 ? Math.round(marginSale) + "% margin on sale" : "";
       if (profit <= 0) { v.textContent = "You'd make a loss"; v.className = "of-verdict bad"; }
-      else if (overCost < 40) { v.textContent = "Below the 40% floor"; v.className = "of-verdict warn"; }
-      else { v.textContent = "Above the 40% floor"; v.className = "of-verdict good"; }
+      else if (marginSale < 30) { v.textContent = "Below the 30% margin floor"; v.className = "of-verdict bad"; }
+      else { v.textContent = "Meets the 30% margin floor"; v.className = "of-verdict good"; }
+      const fullMargin = hasT && t > 0 ? Math.round(((t - c) / t) * 100) : 0;
       rows.innerHTML =
         ofRow("Discount off ticket", discTxt) +
-        ofRow("Margin on sale", Math.round(marginSale) + "%") +
-        (hasT ? ofRow("Profit at full ticket", money(t - c, "EUR") + "  ·  " + Math.round(((t - c) / t) * 100) + "% over cost") : "");
+        (hasT ? ofRow("Profit at full ticket", money(t - c, "EUR") + "  ·  " + fullMargin + "% margin") : "");
     }
   }
 
