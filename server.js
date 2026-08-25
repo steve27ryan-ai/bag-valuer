@@ -364,6 +364,7 @@ const taskStore = {
       due_date: null,
       priority: "med",
       status: "todo",
+      completed_at: null,
       created_by: createdBy || null,
       created_at: now,
     });
@@ -380,6 +381,10 @@ const taskStore = {
   },
   async update(id, input) {
     const patch = cleanTask(input, {});
+    // Stamp the completion time when a task is moved to Done; clear it if it moves back out.
+    if (input.status !== undefined) {
+      patch.completed_at = input.status === "done" ? new Date().toISOString() : null;
+    }
     if (input.images !== undefined) patch.images = await processTaskImages(input.images, id);
     if (supabase) {
       const { data, error } = await supabase
@@ -409,6 +414,88 @@ const taskStore = {
     return true;
   },
 };
+
+// ── Daily snapshots ───────────────────────────────────────────────
+// Once-a-day frozen copy of the whole board, so any past day can be
+// reopened exactly as it looked. Keyed by the Dublin calendar date.
+const SNAPS_FILE = join(__dirname, "snapshots.local.json");
+
+function dublinDate(d = new Date()) {
+  // en-CA formats as YYYY-MM-DD; Europe/Dublin keeps it on the shop's clock.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Dublin" }).format(d);
+}
+function snapsRead() {
+  try {
+    return existsSync(SNAPS_FILE) ? JSON.parse(readFileSync(SNAPS_FILE, "utf8")) : [];
+  } catch {
+    return [];
+  }
+}
+function snapsWrite(arr) {
+  writeFileSync(SNAPS_FILE, JSON.stringify(arr, null, 2));
+}
+
+const snapshotStore = {
+  // Save (or refresh) today's snapshot from the live board. Called after every
+  // change, so today's row always mirrors the board and freezes once the day rolls over.
+  async saveToday() {
+    const tasks = await taskStore.list();
+    const date = dublinDate();
+    const done = tasks.filter((t) => t.status === "done").length;
+    const total = tasks.length;
+    const row = {
+      date,
+      updated_at: new Date().toISOString(),
+      total,
+      done_count: done,
+      open_count: total - done,
+      data: tasks,
+    };
+    if (supabase) {
+      const { error } = await supabase.from("task_snapshots").upsert(row, { onConflict: "date" });
+      if (error) throw new Error(error.message);
+      return row;
+    }
+    const arr = snapsRead().filter((s) => s.date !== date);
+    arr.push(row);
+    snapsWrite(arr);
+    return row;
+  },
+  async list() {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("task_snapshots")
+        .select("date, updated_at, total, done_count, open_count")
+        .order("date", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    return snapsRead()
+      .map(({ data, ...meta }) => meta)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+  },
+  async get(date) {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("task_snapshots")
+        .select("*")
+        .eq("date", date)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data || null;
+    }
+    return snapsRead().find((s) => s.date === date) || null;
+  },
+};
+
+// Refresh today's snapshot without letting a snapshot failure break the task write.
+async function snapshotSafe() {
+  try {
+    await snapshotStore.saveToday();
+  } catch (e) {
+    console.error("Snapshot failed:", e.message);
+  }
+}
 
 // A few sample tasks so the local board isn't empty while testing.
 function seedTasks() {
@@ -1204,6 +1291,25 @@ app.get("/api/tasks", requireCode, async (req, res) => {
   }
 });
 
+// Daily history — list of saved days (newest first), and one day's full board.
+app.get("/api/tasks/snapshots", requireCode, async (req, res) => {
+  try {
+    res.json({ snapshots: await snapshotStore.list() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/tasks/snapshots/:date", requireCode, async (req, res) => {
+  try {
+    const snapshot = await snapshotStore.get(req.params.date);
+    if (!snapshot) return res.status(404).json({ error: "No saved board for that day." });
+    res.json({ snapshot });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post("/api/tasks", requireCode, async (req, res) => {
   try {
     const body = req.body || {};
@@ -1211,6 +1317,7 @@ app.post("/api/tasks", requireCode, async (req, res) => {
       return res.status(400).json({ error: "A task needs a title." });
     }
     const task = await taskStore.create(body, body.created_by);
+    await snapshotSafe();
     res.json({ task });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -1221,6 +1328,7 @@ app.patch("/api/tasks/:id", requireCode, async (req, res) => {
   try {
     const task = await taskStore.update(req.params.id, req.body || {});
     if (!task) return res.status(404).json({ error: "Task not found." });
+    await snapshotSafe();
     res.json({ task });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -1230,6 +1338,7 @@ app.patch("/api/tasks/:id", requireCode, async (req, res) => {
 app.delete("/api/tasks/:id", requireCode, async (req, res) => {
   try {
     await taskStore.remove(req.params.id);
+    await snapshotSafe();
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
