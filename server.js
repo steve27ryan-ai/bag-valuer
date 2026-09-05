@@ -577,11 +577,29 @@ const cashoutStore = {
   // One row per (date, store); the frontend sends the full image set, so we replace.
   async upsert(date, store, images, cash, visa, by) {
     const now = new Date().toISOString();
+    const fields = { images, cash, visa, updated_by: by || null, updated_at: now };
     if (supabase) {
-      const row = { date, store, images, cash, visa, updated_by: by || null, updated_at: now };
+      // Find today's row for this store; update it, or insert a fresh one with a generated id
+      // (the id column has no DB default, so we must supply it, like the tasks table does).
+      const { data: existing } = await supabase
+        .from("cashouts")
+        .select("id")
+        .eq("date", date)
+        .eq("store", store)
+        .maybeSingle();
+      if (existing && existing.id) {
+        const { data, error } = await supabase
+          .from("cashouts")
+          .update(fields)
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error) throw new Error(error.message);
+        return data;
+      }
       const { data, error } = await supabase
         .from("cashouts")
-        .upsert(row, { onConflict: "date,store" })
+        .insert({ id: randomUUID(), date, store, ...fields })
         .select()
         .single();
       if (error) throw new Error(error.message);
