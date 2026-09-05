@@ -289,10 +289,14 @@
   /* Tabs */
   .tabs { display: flex; gap: 4px; margin-bottom: 32px; border-bottom: 1px solid var(--border); }
   .tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
-    padding: 12px 20px; cursor: pointer; font-family: "Jost", sans-serif; font-size: 0.62rem;
-    letter-spacing: 0.24em; text-transform: uppercase; color: var(--stone); transition: color 0.25s, border-color 0.25s; }
+    padding: 12px 16px; cursor: pointer; font-family: "Jost", sans-serif; font-size: 0.58rem;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--stone); transition: color 0.25s, border-color 0.25s; }
   .tab.active { color: var(--espresso); border-bottom-color: var(--bronze); }
   .tab:hover { color: var(--espresso); }
+  @media (max-width: 600px) {
+    .tabs { gap: 0; justify-content: space-between; }
+    .tab { padding: 11px 6px; font-size: 0.52rem; letter-spacing: 0.07em; }
+  }
 
   /* History list */
   .hist-modes { margin-bottom: 16px; }
@@ -449,8 +453,16 @@
   .co-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
   .co-head h3 { font-family: "Cormorant Garamond", serif; font-weight: 400; font-size: 1.5rem; margin: 0; }
   .co-updated { font-size: 0.72rem; color: var(--stone); text-align: right; }
-  .co-note { width: 100%; font-family: "Jost"; font-size: 0.88rem; color: var(--espresso); border: 1px solid var(--border); background: var(--ivory); padding: 10px 12px; margin: 12px 0; }
-  .co-note:focus { outline: none; border-color: var(--bronze); }
+  .co-fields { display: flex; gap: 12px; margin: 14px 0 4px; }
+  .co-field { flex: 1; min-width: 0; }
+  .co-field label { display: block; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bronze-deep); margin-bottom: 5px; }
+  .co-euro { display: flex; align-items: center; border: 1px solid var(--border); background: var(--ivory); }
+  .co-euro span { padding: 0 2px 0 11px; color: var(--stone); font-size: 0.95rem; }
+  .co-euro input { flex: 1; min-width: 0; font-family: "Jost"; font-size: 0.95rem; color: var(--espresso); border: none; background: none; padding: 11px 11px 11px 3px; }
+  .co-euro input:focus { outline: none; }
+  .co-euro:focus-within { border-color: var(--bronze); }
+  .co-total { font-size: 0.8rem; color: var(--stone); margin: 8px 0 12px; min-height: 1.1em; }
+  .co-total b { color: var(--espresso); font-weight: 400; font-family: "Cormorant Garamond", serif; font-size: 1.15rem; }
   .co-actions { display: flex; align-items: center; gap: 12px; }
   .co-savemsg { font-size: 0.75rem; color: #3f6b3f; }
   .co-days { font-size: 0.74rem; color: var(--stone); margin: 8px 0 4px; }
@@ -2636,7 +2648,8 @@
         const rec = (p.cashouts || []).find((c) => String(c.store) === s);
         coState[s] = {
           images: rec && Array.isArray(rec.images) ? rec.images.slice() : [],
-          note: rec && rec.note ? rec.note : "",
+          cash: rec && rec.cash != null ? rec.cash : "",
+          visa: rec && rec.visa != null ? rec.visa : "",
           updated_by: rec ? rec.updated_by : null,
           updated_at: rec ? rec.updated_at : null,
         };
@@ -2654,19 +2667,31 @@
       const st = coState[s];
       return '<div class="co-card">' +
         '<div class="co-head"><h3>Store ' + s + '</h3><span class="co-updated" id="coUp' + s + '">' + coUpdatedLabel(st) + "</span></div>" +
+        '<div class="co-fields">' +
+          '<div class="co-field"><label>Cash</label><div class="co-euro"><span>€</span>' +
+            '<input type="number" inputmode="decimal" min="0" step="0.01" id="coCash' + s + '" placeholder="0.00"></div></div>' +
+          '<div class="co-field"><label>Visa</label><div class="co-euro"><span>€</span>' +
+            '<input type="number" inputmode="decimal" min="0" step="0.01" id="coVisa' + s + '" placeholder="0.00"></div></div>' +
+        "</div>" +
+        '<div class="co-total" id="coTotal' + s + '"></div>' +
         '<div class="tf-thumbs" id="coThumbs' + s + '"></div>' +
         '<label class="task-photo-add"><input type="file" id="coFile' + s + '" accept="image/*" multiple hidden>+ Add photos</label>' +
-        '<input class="co-note" id="coNote' + s + '" maxlength="200" placeholder="Optional note — e.g. Cash €___, Visa €___">' +
         '<div class="co-actions"><button class="btn-solid" id="coSave' + s + '">Save Store ' + s + "</button>" +
         '<span class="co-savemsg" id="coSaveMsg' + s + '"></span></div>' +
         "</div>";
     }).join("");
     CO_STORES.forEach((s) => {
-      document.getElementById("coNote" + s).value = coState[s].note;
+      const cash = document.getElementById("coCash" + s);
+      const visa = document.getElementById("coVisa" + s);
+      cash.value = coState[s].cash;
+      visa.value = coState[s].visa;
+      const upd = () => { coState[s].cash = cash.value; coState[s].visa = visa.value; coRenderTotal(s); };
+      cash.oninput = upd;
+      visa.oninput = upd;
       document.getElementById("coFile" + s).onchange = (e) => coAddPhotos(s, e);
-      document.getElementById("coNote" + s).oninput = (e) => { coState[s].note = e.target.value; };
       document.getElementById("coSave" + s).onclick = () => coSave(s);
       renderCoThumbs(s);
+      coRenderTotal(s);
     });
     const coDays = document.getElementById("coDays");
     const past = (days || []).filter((d) => d !== coDate);
@@ -2691,6 +2716,16 @@
     });
   }
 
+  function coRenderTotal(s) {
+    const el = document.getElementById("coTotal" + s);
+    if (!el) return;
+    const c = parseFloat(coState[s].cash), v = parseFloat(coState[s].visa);
+    const hasC = !isNaN(c), hasV = !isNaN(v);
+    if (!hasC && !hasV) { el.textContent = ""; return; }
+    const tot = (hasC ? c : 0) + (hasV ? v : 0);
+    el.innerHTML = "Day total: <b>€" + tot.toLocaleString("en-IE", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + "</b>";
+  }
+
   function coAddPhotos(s, e) {
     const files = [...e.target.files]; e.target.value = "";
     files.forEach((f) => {
@@ -2708,7 +2743,7 @@
     try {
       const r = await fetch("/api/cashouts", {
         method: "POST", headers: taskHeaders(true),
-        body: JSON.stringify({ date: coDate, store: s, images: coState[s].images, note: coState[s].note, updated_by: currentUser || null }),
+        body: JSON.stringify({ date: coDate, store: s, images: coState[s].images, cash: coState[s].cash, visa: coState[s].visa, updated_by: currentUser || null }),
       });
       if (r.status === 401) { relock(); return; }
       if (!r.ok) { msg.textContent = "Save failed"; return; }
