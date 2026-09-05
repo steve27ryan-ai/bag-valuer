@@ -509,6 +509,116 @@ async function snapshotSafe() {
   }
 }
 
+// ── Cash-out (daily till / Visa photos per store) ─────────────────
+const CASHOUT_FILE = join(__dirname, "cashouts.local.json");
+const CASHOUT_STORES = ["30", "29"];
+const MAX_CASHOUT_IMAGES = 4;
+
+function cashoutRead() {
+  try {
+    return existsSync(CASHOUT_FILE) ? JSON.parse(readFileSync(CASHOUT_FILE, "utf8")) : [];
+  } catch {
+    return [];
+  }
+}
+function cashoutWrite(arr) {
+  writeFileSync(CASHOUT_FILE, JSON.stringify(arr, null, 2));
+}
+
+// Till/Visa total photos need to stay legible, so keep them larger than task thumbnails.
+// New photos arrive as data: URIs; already-stored URLs pass straight through.
+async function processCashoutImages(images, date, store) {
+  if (!Array.isArray(images)) return [];
+  const out = [];
+  for (const item of images.slice(0, MAX_CASHOUT_IMAGES)) {
+    if (typeof item !== "string") continue;
+    if (!item.startsWith("data:")) {
+      out.push(item);
+      continue;
+    }
+    const m = /^data:(image\/[\w.+-]+);base64,(.+)$/i.exec(item);
+    if (!m) continue;
+    try {
+      const resized = await sharp(Buffer.from(m[2], "base64"))
+        .rotate()
+        .resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      if (supabase) {
+        const path = `cashout/${date}/${store}/${randomUUID()}.jpg`;
+        const { error } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(path, resized, { contentType: "image/jpeg", upsert: true });
+        if (error) {
+          console.error("Cash-out upload failed:", error.message);
+          continue;
+        }
+        const { data: pub } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+        if (pub && pub.publicUrl) out.push(pub.publicUrl);
+      } else {
+        out.push("data:image/jpeg;base64," + resized.toString("base64"));
+      }
+    } catch (e) {
+      console.error("Cash-out image processing failed:", e.message);
+    }
+  }
+  return out;
+}
+
+const cashoutStore = {
+  async listByDate(date) {
+    if (supabase) {
+      const { data, error } = await supabase.from("cashouts").select("*").eq("date", date);
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+    return cashoutRead().filter((r) => r.date === date);
+  },
+  // One row per (date, store); the frontend sends the full image set, so we replace.
+  async upsert(date, store, images, note, by) {
+    const now = new Date().toISOString();
+    if (supabase) {
+      const row = { date, store, images, note: note || null, updated_by: by || null, updated_at: now };
+      const { data, error } = await supabase
+        .from("cashouts")
+        .upsert(row, { onConflict: "date,store" })
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    const arr = cashoutRead();
+    const i = arr.findIndex((r) => r.date === date && r.store === store);
+    const row = {
+      id: i >= 0 ? arr[i].id : randomUUID(),
+      date,
+      store,
+      images,
+      note: note || null,
+      updated_by: by || null,
+      created_at: i >= 0 ? arr[i].created_at : now,
+      updated_at: now,
+    };
+    if (i >= 0) arr[i] = row;
+    else arr.push(row);
+    cashoutWrite(arr);
+    return row;
+  },
+  async days(limit = 30) {
+    let rows;
+    if (supabase) {
+      const { data, error } = await supabase.from("cashouts").select("date").order("date", { ascending: false });
+      if (error) throw new Error(error.message);
+      rows = data || [];
+    } else {
+      rows = cashoutRead().sort((a, b) => (a.date < b.date ? 1 : -1));
+    }
+    const seen = [];
+    for (const r of rows) if (!seen.includes(r.date)) seen.push(r.date);
+    return seen.slice(0, limit);
+  },
+};
+
 // A few sample tasks so the local board isn't empty while testing.
 function seedTasks() {
   const now = new Date().toISOString();
@@ -1352,6 +1462,36 @@ app.delete("/api/tasks/:id", requireCode, async (req, res) => {
     await taskStore.remove(req.params.id);
     await snapshotSafe();
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Cash-out API ──────────────────────────────────────────────────
+app.get("/api/cashouts", requireCode, async (req, res) => {
+  try {
+    const date = (req.query.date && String(req.query.date).slice(0, 10)) || dublinDate();
+    res.json({
+      date,
+      stores: CASHOUT_STORES,
+      cashouts: await cashoutStore.listByDate(date),
+      days: await cashoutStore.days(),
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/cashouts", requireCode, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const date = (b.date && String(b.date).slice(0, 10)) || dublinDate();
+    const store = String(b.store || "");
+    if (!CASHOUT_STORES.includes(store)) return res.status(400).json({ error: "Unknown store." });
+    const images = await processCashoutImages(b.images || [], date, store);
+    const note = b.note ? String(b.note).slice(0, 300) : null;
+    const cashout = await cashoutStore.upsert(date, store, images, note, b.updated_by);
+    res.json({ cashout });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
