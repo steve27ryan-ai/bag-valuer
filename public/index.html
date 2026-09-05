@@ -438,6 +438,26 @@
     .slip-page { max-width: none; padding: 0; }
   }
 
+  /* Cash out */
+  .cashout-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+  .co-date { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); }
+  .co-date input { font-family: "Jost"; font-size: 0.9rem; color: var(--espresso); border: 1px solid var(--border); background: var(--ivory); padding: 8px 11px; text-transform: none; letter-spacing: 0; }
+  .co-who { font-size: 0.82rem; color: var(--stone); }
+  .co-who strong { color: var(--espresso); font-weight: 400; }
+  .co-intro { font-size: 0.84rem; color: var(--stone); line-height: 1.6; margin-bottom: 20px; }
+  .co-card { background: var(--white); border: 1px solid var(--border); padding: 18px 20px; margin-bottom: 16px; }
+  .co-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .co-head h3 { font-family: "Cormorant Garamond", serif; font-weight: 400; font-size: 1.5rem; margin: 0; }
+  .co-updated { font-size: 0.72rem; color: var(--stone); text-align: right; }
+  .co-note { width: 100%; font-family: "Jost"; font-size: 0.88rem; color: var(--espresso); border: 1px solid var(--border); background: var(--ivory); padding: 10px 12px; margin: 12px 0; }
+  .co-note:focus { outline: none; border-color: var(--bronze); }
+  .co-actions { display: flex; align-items: center; gap: 12px; }
+  .co-savemsg { font-size: 0.75rem; color: #3f6b3f; }
+  .co-days { font-size: 0.74rem; color: var(--stone); margin: 8px 0 4px; }
+  .co-day { background: none; border: 1px solid var(--border); color: var(--bronze-deep); cursor: pointer; font-family: "Jost"; font-size: 0.72rem; padding: 5px 10px; margin: 0 5px 5px 0; }
+  .co-day:hover { background: var(--pearl); }
+  .co-msg { text-align: center; color: var(--stone); font-size: 0.85rem; padding: 12px; }
+
   /* Tasks — board */
   .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; align-items: start; }
   .col { background: var(--white); border: 1px solid var(--border); }
@@ -605,6 +625,7 @@
     <button class="tab" id="tabOffer" type="button">Offer calc</button>
     <button class="tab" id="tabHistory" type="button" hidden>History</button>
     <button class="tab" id="tabTasks" type="button">Tasks</button>
+    <button class="tab" id="tabCashout" type="button">Cash out</button>
   </nav>
 
   <div id="valuationView">
@@ -808,6 +829,17 @@
       <div class="task-status-msg" id="taskMsg">Loading…</div>
       <div class="board" id="board"></div>
     </div>
+  </div>
+
+  <div id="cashoutView" hidden>
+    <div class="cashout-bar">
+      <div class="co-date"><label for="coDate">Day</label><input type="date" id="coDate" /></div>
+      <div class="co-who">You: <strong id="coYou">—</strong></div>
+    </div>
+    <div class="co-intro">Photograph each store's end-of-day till cash &amp; Visa totals and save them here. 2–3 clear photos per store; they're stored on the day's record.</div>
+    <div id="coStores"></div>
+    <div class="co-days" id="coDays"></div>
+    <div class="co-msg" id="coMsg"></div>
   </div>
 </div>
 
@@ -1655,9 +1687,11 @@
   const tabValue = document.getElementById("tabValue");
   const tabOffer = document.getElementById("tabOffer");
   const tabHistory = document.getElementById("tabHistory");
+  const tabCashout = document.getElementById("tabCashout");
   const valuationView = document.getElementById("valuationView");
   const offerView = document.getElementById("offerView");
   const historyView = document.getElementById("historyView");
+  const cashoutView = document.getElementById("cashoutView");
   const histStatus = document.getElementById("histStatus");
   const histList = document.getElementById("histList");
   const histDetail = document.getElementById("histDetail");
@@ -1678,6 +1712,7 @@
     tabOffer.onclick = () => showTab("offer");
     tabHistory.onclick = () => showTab("history");
     tabTasks.onclick = () => showTab("tasks");
+    tabCashout.onclick = () => showTab("cashout");
     ["ofTicket", "ofOffer", "ofCost"].forEach((id) => (document.getElementById(id).oninput = calcOffer));
     document.querySelectorAll("#ofOwn .seg-btn").forEach((b) =>
       (b.onclick = () => {
@@ -1719,16 +1754,20 @@
     const isTasks = which === "tasks";
     const isValue = which === "value";
     const isOffer = which === "offer";
+    const isCashout = which === "cashout";
     tabValue.classList.toggle("active", isValue);
     tabOffer.classList.toggle("active", isOffer);
     tabHistory.classList.toggle("active", isHist);
     tabTasks.classList.toggle("active", isTasks);
+    tabCashout.classList.toggle("active", isCashout);
     valuationView.hidden = !isValue;
     offerView.hidden = !isOffer;
     historyView.hidden = !isHist;
     tasksView.hidden = !isTasks;
+    cashoutView.hidden = !isCashout;
     if (isHist) loadHistoryMode();
     if (isTasks) openTasks();
+    if (isCashout) openCashout();
   }
 
   // Offer calculator — branches on ownership. Store-owned: profit vs Liberty cost (30% margin floor).
@@ -2554,6 +2593,139 @@
       '<div class="hd-head">' + escapeHtml(dayLabel(snap.date)) + "</div>" +
       '<div class="hist-grp">' + doneN + " of " + tasks.length + " completed</div>" +
       (rows || '<div class="hist-empty">No tasks that day.</div>');
+  }
+
+  // ── Cash out (daily till / Visa photos per store) ─────────────
+  const CO_STORES = ["30", "29"];
+  let coDate = null;
+  let coState = {};
+
+  function coToday() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Dublin" }).format(new Date());
+  }
+  function coShortDay(d) {
+    const p = String(d).split("-");
+    const dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12));
+    return new Intl.DateTimeFormat("en-IE", { timeZone: "UTC", day: "numeric", month: "short" }).format(dt);
+  }
+  function coUpdatedLabel(st) {
+    if (!st.updated_at) return "Not saved yet";
+    return "Saved " + dublinTime(st.updated_at) + (st.updated_by ? " · " + escapeHtml(st.updated_by) : "");
+  }
+
+  function openCashout() {
+    document.getElementById("coYou").textContent = currentUser || "not set";
+    if (!coDate) coDate = coToday();
+    const di = document.getElementById("coDate");
+    di.value = coDate;
+    di.max = coToday();
+    di.onchange = (e) => { coDate = e.target.value || coToday(); loadCashout(); };
+    loadCashout();
+  }
+
+  async function loadCashout() {
+    const msg = document.getElementById("coMsg");
+    const wrap = document.getElementById("coStores");
+    msg.textContent = "Loading…"; wrap.innerHTML = "";
+    try {
+      const r = await fetch("/api/cashouts?date=" + encodeURIComponent(coDate), { headers: taskHeaders() });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      coState = {};
+      CO_STORES.forEach((s) => {
+        const rec = (p.cashouts || []).find((c) => String(c.store) === s);
+        coState[s] = {
+          images: rec && Array.isArray(rec.images) ? rec.images.slice() : [],
+          note: rec && rec.note ? rec.note : "",
+          updated_by: rec ? rec.updated_by : null,
+          updated_at: rec ? rec.updated_at : null,
+        };
+      });
+      renderCashout(p.days || []);
+      msg.textContent = "";
+    } catch (e) {
+      msg.textContent = "Couldn't load cash-out.";
+    }
+  }
+
+  function renderCashout(days) {
+    const wrap = document.getElementById("coStores");
+    wrap.innerHTML = CO_STORES.map((s) => {
+      const st = coState[s];
+      return '<div class="co-card">' +
+        '<div class="co-head"><h3>Store ' + s + '</h3><span class="co-updated" id="coUp' + s + '">' + coUpdatedLabel(st) + "</span></div>" +
+        '<div class="tf-thumbs" id="coThumbs' + s + '"></div>' +
+        '<label class="task-photo-add"><input type="file" id="coFile' + s + '" accept="image/*" multiple hidden>+ Add photos</label>' +
+        '<input class="co-note" id="coNote' + s + '" maxlength="200" placeholder="Optional note — e.g. Cash €___, Visa €___">' +
+        '<div class="co-actions"><button class="btn-solid" id="coSave' + s + '">Save Store ' + s + "</button>" +
+        '<span class="co-savemsg" id="coSaveMsg' + s + '"></span></div>' +
+        "</div>";
+    }).join("");
+    CO_STORES.forEach((s) => {
+      document.getElementById("coNote" + s).value = coState[s].note;
+      document.getElementById("coFile" + s).onchange = (e) => coAddPhotos(s, e);
+      document.getElementById("coNote" + s).oninput = (e) => { coState[s].note = e.target.value; };
+      document.getElementById("coSave" + s).onclick = () => coSave(s);
+      renderCoThumbs(s);
+    });
+    const coDays = document.getElementById("coDays");
+    const past = (days || []).filter((d) => d !== coDate);
+    coDays.innerHTML = past.length
+      ? "Recent days: " + past.slice(0, 10).map((d) => '<button class="co-day" data-d="' + d + '">' + coShortDay(d) + "</button>").join("")
+      : "";
+    coDays.querySelectorAll(".co-day").forEach((b) =>
+      (b.onclick = () => { coDate = b.dataset.d; document.getElementById("coDate").value = coDate; loadCashout(); }));
+  }
+
+  function renderCoThumbs(s) {
+    const wrap = document.getElementById("coThumbs" + s);
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    coState[s].images.forEach((src, i) => {
+      const div = document.createElement("div"); div.className = "tf-thumb";
+      const img = document.createElement("img"); img.src = src; img.onclick = () => openLightbox(src);
+      const btn = document.createElement("button"); btn.type = "button"; btn.textContent = "×";
+      btn.setAttribute("aria-label", "Remove photo");
+      btn.onclick = () => { coState[s].images.splice(i, 1); renderCoThumbs(s); };
+      div.appendChild(img); div.appendChild(btn); wrap.appendChild(div);
+    });
+  }
+
+  function coAddPhotos(s, e) {
+    const files = [...e.target.files]; e.target.value = "";
+    files.forEach((f) => {
+      if (!f.type.startsWith("image/") || coState[s].images.length >= 4) return;
+      const reader = new FileReader();
+      reader.onload = () => { coState[s].images.push(reader.result); renderCoThumbs(s); };
+      reader.readAsDataURL(f);
+    });
+  }
+
+  async function coSave(s) {
+    const btn = document.getElementById("coSave" + s);
+    const msg = document.getElementById("coSaveMsg" + s);
+    btn.disabled = true; const label = btn.textContent; btn.textContent = "Saving…"; msg.textContent = "";
+    try {
+      const r = await fetch("/api/cashouts", {
+        method: "POST", headers: taskHeaders(true),
+        body: JSON.stringify({ date: coDate, store: s, images: coState[s].images, note: coState[s].note, updated_by: currentUser || null }),
+      });
+      if (r.status === 401) { relock(); return; }
+      if (!r.ok) { msg.textContent = "Save failed"; return; }
+      const p = await r.json();
+      coState[s].images = Array.isArray(p.cashout.images) ? p.cashout.images.slice() : [];
+      coState[s].updated_at = p.cashout.updated_at;
+      coState[s].updated_by = p.cashout.updated_by;
+      renderCoThumbs(s);
+      const up = document.getElementById("coUp" + s);
+      if (up) up.textContent = coUpdatedLabel(coState[s]);
+      msg.textContent = "Saved ✓";
+      setTimeout(() => { msg.textContent = ""; }, 2500);
+    } catch (e) {
+      msg.textContent = "Save failed";
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
   }
 
   function initials(name) {
