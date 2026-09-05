@@ -575,10 +575,10 @@ const cashoutStore = {
     return cashoutRead().filter((r) => r.date === date);
   },
   // One row per (date, store); the frontend sends the full image set, so we replace.
-  async upsert(date, store, images, note, by) {
+  async upsert(date, store, images, cash, visa, by) {
     const now = new Date().toISOString();
     if (supabase) {
-      const row = { date, store, images, note: note || null, updated_by: by || null, updated_at: now };
+      const row = { date, store, images, cash, visa, updated_by: by || null, updated_at: now };
       const { data, error } = await supabase
         .from("cashouts")
         .upsert(row, { onConflict: "date,store" })
@@ -594,7 +594,8 @@ const cashoutStore = {
       date,
       store,
       images,
-      note: note || null,
+      cash,
+      visa,
       updated_by: by || null,
       created_at: i >= 0 ? arr[i].created_at : now,
       updated_at: now,
@@ -1489,8 +1490,8 @@ app.post("/api/cashouts", requireCode, async (req, res) => {
     const store = String(b.store || "");
     if (!CASHOUT_STORES.includes(store)) return res.status(400).json({ error: "Unknown store." });
     const images = await processCashoutImages(b.images || [], date, store);
-    const note = b.note ? String(b.note).slice(0, 300) : null;
-    const cashout = await cashoutStore.upsert(date, store, images, note, b.updated_by);
+    const num = (x) => { const n = Number(x); return x === "" || x == null || !Number.isFinite(n) ? null : n; };
+    const cashout = await cashoutStore.upsert(date, store, images, num(b.cash), num(b.visa), b.updated_by);
     res.json({ cashout });
   } catch (e) {
     res.status(500).json({ error: e.message });
