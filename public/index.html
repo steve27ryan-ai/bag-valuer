@@ -567,6 +567,34 @@
   .saved-note { text-align: center; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: #2f6b3d; margin-top: 10px; }
   /* Batch mode */
   .valmode { justify-content: center; margin-bottom: 20px; }
+
+  /* Price code lookup */
+  .pc-card { text-align: left; }
+  .pc-intro { font-size: 0.85rem; color: var(--stone); line-height: 1.6; margin-bottom: 20px; }
+  .pc-label { display: block; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bronze-deep); margin-bottom: 8px; }
+  .pc-inputwrap { display: flex; align-items: center; border: 1px solid var(--border); background: var(--ivory); max-width: 280px; }
+  .pc-inputwrap:focus-within { border-color: var(--bronze); }
+  .pc-cur { padding: 0 2px 0 14px; color: var(--stone); font-size: 1.3rem; font-family: "Cormorant Garamond", serif; }
+  .pc-inputwrap input { flex: 1; min-width: 0; border: none; background: none; font-family: "Cormorant Garamond", serif; font-size: 1.7rem; color: var(--espresso); padding: 12px 14px 12px 4px; }
+  .pc-inputwrap input:focus { outline: none; }
+  .pc-result { margin-top: 24px; }
+  .pc-badge-row { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
+  .pc-badge { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: var(--espresso); color: var(--pearl); font-family: "Cormorant Garamond", serif; font-size: 1.55rem; }
+  .pc-band { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone); }
+  .pc-split { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--border); }
+  .pc-cell { background: var(--white); padding: 18px 14px; text-align: center; }
+  .pc-cell.sio { background: var(--pearl); }
+  .pc-k { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bronze-deep); margin-bottom: 8px; }
+  .pc-pct { font-family: "Cormorant Garamond", serif; font-size: 2.1rem; line-height: 1; color: var(--espresso); }
+  .pc-amt { font-size: 0.95rem; color: var(--stone); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .pc-vat { font-size: 0.72rem; color: var(--stone); font-style: italic; margin-top: 12px; }
+  .pc-table { margin-top: 28px; }
+  .pc-trow { display: grid; grid-template-columns: 0.55fr 1.7fr 1fr 1.1fr; gap: 8px; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 0.82rem; align-items: center; }
+  .pc-trow.pc-thead { font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bronze); border-bottom: 1px solid var(--bronze); }
+  .pc-trow.active { background: var(--pearl); }
+  .pc-trow.active .pc-tc { color: var(--bronze-deep); }
+  .pc-tc { font-family: "Cormorant Garamond", serif; font-size: 1.1rem; }
+  .pc-trow span:nth-child(3), .pc-trow span:nth-child(4) { text-align: right; font-variant-numeric: tabular-nums; }
   .breview-head { margin-bottom: 18px; }
   .breview-title { font-size: 0.62rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--bronze); }
   .breview-sub { font-size: 0.78rem; color: var(--stone); margin-top: 8px; line-height: 1.6; }
@@ -661,9 +689,10 @@
   <div class="seg valmode" id="valMode">
     <button class="seg-btn active" data-vm="single" type="button">Single item</button>
     <button class="seg-btn" data-vm="batch" type="button">Batch</button>
+    <button class="seg-btn" data-vm="pricecode" type="button">Price code</button>
   </div>
 
-  <div class="card">
+  <div class="card" id="valCard">
     <div class="drop" id="drop">
       <input type="file" id="file" accept="image/*" multiple />
       <div class="drop-icon">◈</div>
@@ -710,6 +739,26 @@
       <button type="button" class="again-outline" id="breviewCancel">Discard</button>
       <button type="button" class="again-outline" id="breviewAddAll">Add to intake</button>
       <button type="button" class="again-solid" id="breviewSaveAll">Save all to history now</button>
+    </div>
+  </div>
+
+  <div id="priceCodePanel" hidden>
+    <div class="card pc-card">
+      <div class="pc-intro">Enter a sale price to see its <b>price code</b> and how it splits — no photo needed.</div>
+      <label class="pc-label" for="pcPrice">Sale price</label>
+      <div class="pc-inputwrap">
+        <span class="pc-cur">€</span>
+        <input type="number" id="pcPrice" inputmode="decimal" min="0" step="1" placeholder="0" autocomplete="off" />
+      </div>
+      <div class="pc-result" id="pcResult" hidden>
+        <div class="pc-badge-row"><span class="pc-badge" id="pcCode">A</span><span class="pc-band" id="pcBand"></span></div>
+        <div class="pc-split">
+          <div class="pc-cell sio"><div class="pc-k">Siopaella keeps</div><div class="pc-pct" id="pcSioPct"></div><div class="pc-amt" id="pcSioAmt"></div></div>
+          <div class="pc-cell sell"><div class="pc-k">Seller gets</div><div class="pc-pct" id="pcSellPct"></div><div class="pc-amt" id="pcSellAmt"></div></div>
+        </div>
+        <div class="pc-vat">The 23% VAT comes out of Siopaella's share.</div>
+      </div>
+      <div class="pc-table" id="pcTable"></div>
     </div>
   </div>
   </div><!-- /valuationView -->
@@ -957,6 +1006,18 @@
     };
   });
   function updateModeUi() {
+    const isPrice = valMode === "pricecode";
+    // Price-code mode is a photo-free split lookup — swap the whole valuation flow for it.
+    document.getElementById("valCard").hidden = isPrice;
+    document.getElementById("priceCodePanel").hidden = !isPrice;
+    document.getElementById("results").hidden = isPrice;
+    if (isPrice) {
+      statusEl.classList.remove("show");
+      document.getElementById("error").textContent = "";
+      document.getElementById("batchReview").hidden = true;
+      pcCompute();
+      return;
+    }
     const dropTitle = document.querySelector(".drop-title");
     const dropHint = document.querySelector(".drop-hint");
     const angleHint = document.querySelector(".angle-hint");
@@ -975,6 +1036,59 @@
     }
     renderThumbs();
   }
+
+  // ── Price code lookup (no photo) ──────────────────────────────
+  // Bands are derived from splitFor() by scanning, so this stays correct if the
+  // split thresholds ever change. pct = Siopaella's commission %; seller gets the rest.
+  function pcBands() {
+    const bands = [];
+    let cur = null;
+    for (let p = 0; p <= 6000; p++) {
+      const s = splitFor(p);
+      if (!cur || s.code !== cur.code || s.pct !== cur.pct) {
+        if (cur) cur.max = p - 1;
+        cur = { code: s.code, pct: s.pct, min: p, max: Infinity };
+        bands.push(cur);
+      }
+    }
+    return bands;
+  }
+  function eurPc(n) {
+    return "€" + Number(n).toLocaleString("en-IE", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+  function renderPcTable(activeCode) {
+    const el = document.getElementById("pcTable");
+    const bands = pcBands();
+    el.innerHTML =
+      '<div class="pc-trow pc-thead"><span>Code</span><span>Sale price</span><span>Seller</span><span>Siopaella</span></div>' +
+      bands.map((b) => {
+        const range = b.min === 0 ? "Up to €" + b.max.toLocaleString("en-IE")
+          : b.max === Infinity ? "€" + b.min.toLocaleString("en-IE") + "+"
+          : "€" + b.min.toLocaleString("en-IE") + "–€" + b.max.toLocaleString("en-IE");
+        const active = b.code === activeCode ? " active" : "";
+        return '<div class="pc-trow' + active + '"><span class="pc-tc">' + b.code + "</span><span>" + range +
+          "</span><span>" + (100 - b.pct) + "%</span><span>" + b.pct + "%</span></div>";
+      }).join("");
+  }
+  function pcCompute() {
+    const price = parseFloat(document.getElementById("pcPrice").value);
+    const res = document.getElementById("pcResult");
+    if (isNaN(price) || price <= 0) {
+      res.hidden = true;
+      renderPcTable(null);
+      return;
+    }
+    const s = splitFor(price);
+    document.getElementById("pcCode").textContent = s.code;
+    document.getElementById("pcBand").textContent = "Band " + s.code;
+    document.getElementById("pcSioPct").textContent = s.pct + "%";
+    document.getElementById("pcSellPct").textContent = (100 - s.pct) + "%";
+    document.getElementById("pcSioAmt").textContent = eurPc(price * s.pct / 100);
+    document.getElementById("pcSellAmt").textContent = eurPc(price * (100 - s.pct) / 100);
+    res.hidden = false;
+    renderPcTable(s.code);
+  }
+  document.getElementById("pcPrice").addEventListener("input", pcCompute);
 
   fileInput.addEventListener("change", (e) => { addFiles(e.target.files); fileInput.value = ""; });
   // The drop zone is a <div> now (not a <label>), so open the picker on tap ourselves.
