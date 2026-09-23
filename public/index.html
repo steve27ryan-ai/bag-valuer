@@ -588,6 +588,17 @@
   .pc-pct { font-family: "Cormorant Garamond", serif; font-size: 2.1rem; line-height: 1; color: var(--espresso); }
   .pc-amt { font-size: 0.95rem; color: var(--stone); margin-top: 6px; font-variant-numeric: tabular-nums; }
   .pc-vat { font-size: 0.72rem; color: var(--stone); font-style: italic; margin-top: 12px; }
+  .pc-section-b { margin-top: 30px; padding-top: 26px; border-top: 1px solid var(--border); }
+  .pc-sublabel { font-size: 0.78rem; color: var(--stone); margin: -2px 0 10px; line-height: 1.5; }
+  .pc-inv-price { font-size: 1rem; color: var(--stone); }
+  .pc-inv-price b { font-family: "Cormorant Garamond", serif; font-size: 1.7rem; color: var(--espresso); font-weight: 400; }
+  .pc-gapmsg { font-size: 0.85rem; color: var(--stone); line-height: 1.6; margin: 4px 0 14px; }
+  .pc-gapmsg b { color: var(--espresso); }
+  .pc-opts { display: flex; flex-direction: column; gap: 2px; background: var(--border); }
+  .pc-opt { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; background: var(--white); padding: 13px 15px; }
+  .pc-opt-code { font-family: "Cormorant Garamond", serif; font-size: 1.15rem; color: var(--bronze-deep); width: 32px; height: 32px; border-radius: 50%; background: var(--pearl); display: inline-flex; align-items: center; justify-content: center; }
+  .pc-opt-price { font-size: 0.92rem; color: var(--espresso); }
+  .pc-opt-sell { font-size: 0.85rem; color: var(--stone); font-variant-numeric: tabular-nums; }
   .pc-table { margin-top: 28px; }
   .pc-trow { display: grid; grid-template-columns: 0.55fr 1.7fr 1fr 1.1fr; gap: 8px; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 0.82rem; align-items: center; }
   .pc-trow.pc-thead { font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bronze); border-bottom: 1px solid var(--bronze); }
@@ -744,20 +755,34 @@
 
   <div id="priceCodePanel" hidden>
     <div class="card pc-card">
-      <div class="pc-intro">Enter a sale price to see its <b>price code</b> and how it splits — no photo needed.</div>
-      <label class="pc-label" for="pcPrice">Sale price</label>
-      <div class="pc-inputwrap">
-        <span class="pc-cur">€</span>
-        <input type="number" id="pcPrice" inputmode="decimal" min="0" step="1" placeholder="0" autocomplete="off" />
-      </div>
-      <div class="pc-result" id="pcResult" hidden>
-        <div class="pc-badge-row"><span class="pc-badge" id="pcCode">A</span><span class="pc-band" id="pcBand"></span></div>
-        <div class="pc-split">
-          <div class="pc-cell sio"><div class="pc-k">Siopaella keeps</div><div class="pc-pct" id="pcSioPct"></div><div class="pc-amt" id="pcSioAmt"></div></div>
-          <div class="pc-cell sell"><div class="pc-k">Seller gets</div><div class="pc-pct" id="pcSellPct"></div><div class="pc-amt" id="pcSellAmt"></div></div>
+      <div class="pc-intro">Two quick lookups, no photo needed — work out the split <b>from a price</b>, or the <b>price to set from the seller's return</b>.</div>
+
+      <div class="pc-section">
+        <label class="pc-label" for="pcPrice">From a sale price</label>
+        <div class="pc-inputwrap">
+          <span class="pc-cur">€</span>
+          <input type="number" id="pcPrice" inputmode="decimal" min="0" step="1" placeholder="0" autocomplete="off" />
         </div>
-        <div class="pc-vat">The 23% VAT comes out of Siopaella's share.</div>
+        <div class="pc-result" id="pcResult" hidden>
+          <div class="pc-badge-row"><span class="pc-badge" id="pcCode">A</span><span class="pc-band" id="pcBand"></span></div>
+          <div class="pc-split">
+            <div class="pc-cell sio"><div class="pc-k">Siopaella keeps</div><div class="pc-pct" id="pcSioPct"></div><div class="pc-amt" id="pcSioAmt"></div></div>
+            <div class="pc-cell sell"><div class="pc-k">Seller gets</div><div class="pc-pct" id="pcSellPct"></div><div class="pc-amt" id="pcSellAmt"></div></div>
+          </div>
+          <div class="pc-vat">The 23% VAT comes out of Siopaella's share.</div>
+        </div>
       </div>
+
+      <div class="pc-section pc-section-b">
+        <label class="pc-label" for="pcSeller">From the seller's return</label>
+        <div class="pc-sublabel">The amount the seller wants to receive — we'll work back to the price to list at.</div>
+        <div class="pc-inputwrap">
+          <span class="pc-cur">€</span>
+          <input type="number" id="pcSeller" inputmode="decimal" min="0" step="1" placeholder="0" autocomplete="off" />
+        </div>
+        <div class="pc-result" id="pcInvResult" hidden></div>
+      </div>
+
       <div class="pc-table" id="pcTable"></div>
     </div>
   </div>
@@ -1089,6 +1114,60 @@
     renderPcTable(s.code);
   }
   document.getElementById("pcPrice").addEventListener("input", pcCompute);
+
+  // Inverse: seller's desired return → the price to list at. The split % jumps at band
+  // boundaries, so some returns aren't hittable exactly — then we show the closest options.
+  function pcRound(p) { return Math.round(p * 100) / 100; }
+  function pcInverse(R) {
+    const bands = pcBands().map((b) => {
+      const share = (100 - b.pct) / 100;
+      return { ...b, share, rmin: b.min * share, rmax: (b.max === Infinity ? Infinity : b.max * share) };
+    });
+    for (const b of bands) {
+      if (R >= b.rmin && R <= b.rmax) {
+        const price = R / b.share;
+        return { type: "exact", code: b.code, pct: b.pct, price, sio: price - R };
+      }
+    }
+    let lower = null, upper = null;
+    for (const b of bands) {
+      if (b.rmax < R) lower = b;
+      if (b.rmin > R && !upper) upper = b;
+    }
+    return { type: "gap", lower, upper };
+  }
+  function pcOptRow(price, seller, code) {
+    return '<div class="pc-opt"><span class="pc-opt-code">' + code + "</span>" +
+      '<span class="pc-opt-price">List at <b>' + eurPc(price) + "</b></span>" +
+      '<span class="pc-opt-sell">seller gets ' + eurPc(seller) + "</span></div>";
+  }
+  function pcInvCompute() {
+    const R = parseFloat(document.getElementById("pcSeller").value);
+    const el = document.getElementById("pcInvResult");
+    if (isNaN(R) || R <= 0) { el.hidden = true; el.innerHTML = ""; return; }
+    const r = pcInverse(R);
+    if (r.type === "exact") {
+      el.innerHTML =
+        '<div class="pc-badge-row"><span class="pc-badge">' + r.code + "</span>" +
+        '<span class="pc-inv-price">List it at <b>' + eurPc(pcRound(r.price)) + "</b></span></div>" +
+        '<div class="pc-split">' +
+          '<div class="pc-cell sell"><div class="pc-k">Seller receives</div><div class="pc-pct">' + eurPc(R) + '</div><div class="pc-amt">' + (100 - r.pct) + "%</div></div>" +
+          '<div class="pc-cell sio"><div class="pc-k">Siopaella keeps</div><div class="pc-pct">' + eurPc(r.sio) + '</div><div class="pc-amt">' + r.pct + "%</div></div>" +
+        "</div>" +
+        '<div class="pc-vat">List at ' + eurPc(pcRound(r.price)) + " (code " + r.code + "). VAT comes out of Siopaella's share.</div>";
+      renderPcTable(r.code);
+    } else {
+      let rows = "";
+      if (r.lower) rows += pcOptRow(r.lower.max, r.lower.max * r.lower.share, r.lower.code);
+      if (r.upper) rows += pcOptRow(r.upper.min, r.upper.min * r.upper.share, r.upper.code);
+      el.innerHTML =
+        '<div class="pc-gapmsg"><b>' + eurPc(R) + "</b> can't be hit exactly — the split jumps at the band boundaries. Closest options:</div>" +
+        '<div class="pc-opts">' + rows + "</div>";
+      renderPcTable(null);
+    }
+    el.hidden = false;
+  }
+  document.getElementById("pcSeller").addEventListener("input", pcInvCompute);
 
   fileInput.addEventListener("change", (e) => { addFiles(e.target.files); fileInput.value = ""; });
   // The drop zone is a <div> now (not a <label>), so open the picker on tap ourselves.
