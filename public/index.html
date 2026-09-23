@@ -566,7 +566,10 @@
   .disclaimer { margin-top: 28px; font-size: 0.72rem; color: var(--stone); text-align: center; line-height: 1.7; }
   .saved-note { text-align: center; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: #2f6b3d; margin-top: 10px; }
   /* Batch mode */
-  .valmode { justify-content: center; margin-bottom: 20px; }
+  .valmode { justify-content: center; margin-bottom: 20px; max-width: 100%; }
+  @media (max-width: 600px) {
+    .valmode .seg-btn { padding: 8px 9px; font-size: 0.52rem; letter-spacing: 0.05em; }
+  }
 
   /* Price code lookup */
   .pc-card { text-align: left; }
@@ -674,7 +677,6 @@
   <nav class="tabs" id="tabs" hidden>
     <button class="tab active" id="tabValue" type="button">New valuation</button>
     <button class="tab" id="tabOffer" type="button">Offer calc</button>
-    <button class="tab" id="tabHistory" type="button" hidden>History</button>
     <button class="tab" id="tabTasks" type="button">Tasks</button>
     <button class="tab" id="tabCashout" type="button">Cash out</button>
   </nav>
@@ -701,6 +703,7 @@
     <button class="seg-btn active" data-vm="single" type="button">Single item</button>
     <button class="seg-btn" data-vm="batch" type="button">Batch</button>
     <button class="seg-btn" data-vm="pricecode" type="button">Price code</button>
+    <button class="seg-btn" data-vm="history" type="button" hidden>History</button>
   </div>
 
   <div class="card" id="valCard">
@@ -1032,15 +1035,18 @@
   });
   function updateModeUi() {
     const isPrice = valMode === "pricecode";
-    // Price-code mode is a photo-free split lookup — swap the whole valuation flow for it.
-    document.getElementById("valCard").hidden = isPrice;
+    const isHistory = valMode === "history";
+    // Price-code and History are photo-free modes — swap the whole valuation flow for them.
+    document.getElementById("valCard").hidden = isPrice || isHistory;
     document.getElementById("priceCodePanel").hidden = !isPrice;
-    document.getElementById("results").hidden = isPrice;
-    if (isPrice) {
+    document.getElementById("results").hidden = isPrice || isHistory;
+    historyView.hidden = !isHistory;
+    if (isPrice || isHistory) {
       statusEl.classList.remove("show");
       document.getElementById("error").textContent = "";
       document.getElementById("batchReview").hidden = true;
-      pcCompute();
+      if (isPrice) pcCompute();
+      if (isHistory) loadHistoryMode();
       return;
     }
     const dropTitle = document.querySelector(".drop-title");
@@ -1891,7 +1897,6 @@
   const tabsNav = document.getElementById("tabs");
   const tabValue = document.getElementById("tabValue");
   const tabOffer = document.getElementById("tabOffer");
-  const tabHistory = document.getElementById("tabHistory");
   const tabCashout = document.getElementById("tabCashout");
   const valuationView = document.getElementById("valuationView");
   const offerView = document.getElementById("offerView");
@@ -1912,10 +1917,11 @@
 
   function setupTabs() {
     tabsNav.hidden = false; // Tasks is always available, so the nav always shows
-    tabHistory.hidden = !historyEnabled;
+    // History now lives inside the New Valuation toggle; show it only when history is enabled.
+    const histVm = document.querySelector('#valMode [data-vm="history"]');
+    if (histVm) histVm.hidden = !historyEnabled;
     tabValue.onclick = () => showTab("value");
     tabOffer.onclick = () => showTab("offer");
-    tabHistory.onclick = () => showTab("history");
     tabTasks.onclick = () => showTab("tasks");
     tabCashout.onclick = () => showTab("cashout");
     ["ofTicket", "ofOffer", "ofCost"].forEach((id) => (document.getElementById(id).oninput = calcOffer));
@@ -1955,22 +1961,21 @@
   }
 
   function showTab(which) {
-    const isHist = which === "history";
     const isTasks = which === "tasks";
     const isValue = which === "value";
     const isOffer = which === "offer";
     const isCashout = which === "cashout";
     tabValue.classList.toggle("active", isValue);
     tabOffer.classList.toggle("active", isOffer);
-    tabHistory.classList.toggle("active", isHist);
     tabTasks.classList.toggle("active", isTasks);
     tabCashout.classList.toggle("active", isCashout);
     valuationView.hidden = !isValue;
     offerView.hidden = !isOffer;
-    historyView.hidden = !isHist;
     tasksView.hidden = !isTasks;
     cashoutView.hidden = !isCashout;
-    if (isHist) loadHistoryMode();
+    // History is a mode inside the New Valuation view now — hide it unless we're there.
+    if (isValue) updateModeUi();
+    else historyView.hidden = true;
     if (isTasks) openTasks();
     if (isCashout) openCashout();
   }
