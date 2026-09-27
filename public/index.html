@@ -453,8 +453,8 @@
   .co-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
   .co-head h3 { font-family: "Cormorant Garamond", serif; font-weight: 400; font-size: 1.5rem; margin: 0; }
   .co-updated { font-size: 0.72rem; color: var(--stone); text-align: right; }
-  .co-fields { display: flex; gap: 12px; margin: 14px 0 4px; }
-  .co-field { flex: 1; min-width: 0; }
+  .co-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0 4px; }
+  .co-field { min-width: 0; }
   .co-field label { display: block; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bronze-deep); margin-bottom: 5px; }
   .co-euro { display: flex; align-items: center; border: 1px solid var(--border); background: var(--ivory); }
   .co-euro span { padding: 0 2px 0 11px; color: var(--stone); font-size: 0.95rem; }
@@ -469,6 +469,70 @@
   .co-day { background: none; border: 1px solid var(--border); color: var(--bronze-deep); cursor: pointer; font-family: "Jost"; font-size: 0.72rem; padding: 5px 10px; margin: 0 5px 5px 0; }
   .co-day:hover { background: var(--pearl); }
   .co-msg { text-align: center; color: var(--stone); font-size: 0.85rem; padding: 12px; }
+
+  /* Cash payouts */
+  .po-card { text-align: left; }
+  .po-row { display: flex; gap: 14px; margin-bottom: 14px; }
+  .po-row:last-child { margin-bottom: 0; }
+  .po-field { flex: 1; min-width: 0; }
+  .po-field label { display: block; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--bronze-deep); margin-bottom: 6px; }
+  .po-field input { width: 100%; font-family: "Jost"; font-size: 0.9rem; color: var(--espresso); border: 1px solid var(--border); background: var(--ivory); padding: 10px 12px; }
+  .po-field input:focus { outline: none; border-color: var(--bronze); }
+  .po-typeseg { display: inline-flex; }
+  .po-actions { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  .po-listwrap { margin-top: 24px; }
+  .po-listhead { font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bronze); margin-bottom: 10px; }
+  .po-list { display: flex; flex-direction: column; gap: 2px; }
+  .po-item { display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center; background: var(--white); border: 1px solid var(--border); padding: 12px 14px; font-size: 0.86rem; }
+  .po-item .po-date { color: var(--stone); font-size: 0.78rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .po-item .po-who { color: var(--espresso); }
+  .po-item .po-who .po-tag { font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bronze-deep); border: 1px solid var(--border); padding: 2px 6px; margin-left: 8px; }
+  .po-item .po-amt { font-family: "Cormorant Garamond", serif; font-size: 1.15rem; color: var(--espresso); text-align: right; font-variant-numeric: tabular-nums; }
+  .po-item .po-del { background: none; border: none; color: var(--bronze-pale); cursor: pointer; font-size: 1rem; line-height: 1; }
+  .po-item .po-del:hover { color: #b45; }
+  .po-note-line { grid-column: 1 / -1; font-size: 0.78rem; color: var(--stone); margin-top: 2px; }
+  .po-empty { color: var(--bronze-pale); font-size: 0.82rem; padding: 12px 2px; }
+
+  /* Time off */
+  .to-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .to-head h2 { font-family: "Cormorant Garamond", serif; font-weight: 400; font-size: 1.7rem; margin: 0; }
+  .to-picker { text-align: center; padding: 20px 0; }
+  .to-card { text-align: left; }
+  .to-daycount { font-size: 0.82rem; color: var(--bronze-deep); margin: 12px 0 4px; min-height: 1.1em; }
+  .to-mine, .to-pending { display: flex; flex-direction: column; gap: 8px; }
+  .to-req { display: grid; grid-template-columns: 1fr auto; gap: 10px 14px; align-items: center; background: var(--white); border: 1px solid var(--border); padding: 12px 14px; }
+  .to-req .to-when { font-size: 0.9rem; color: var(--espresso); }
+  .to-req .to-who { font-size: 0.9rem; color: var(--espresso); }
+  .to-req .to-sub { grid-column: 1 / -1; font-size: 0.76rem; color: var(--stone); }
+  .to-status { font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+  .to-status.pending { background: #FBF3E4; color: #8a6d1f; }
+  .to-status.approved { background: #EEF4EC; color: #3f6b3d; }
+  .to-status.declined { background: #F6ECEC; color: #8a3b3b; }
+  .to-actions { display: flex; gap: 8px; }
+  .to-btn { border: 1px solid var(--border); background: var(--white); cursor: pointer; font-family: "Jost"; font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 12px; }
+  .to-btn.approve { background: #3f6b3d; color: #fff; border-color: #3f6b3d; }
+  .to-btn.decline { color: #8a3b3b; }
+  .to-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: #b45; color: #fff; font-size: 0.6rem; letter-spacing: 0; margin-left: 4px; }
+  .to-calbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .to-calmonth { font-family: "Cormorant Garamond", serif; font-size: 1.3rem; }
+  .to-grid-head { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 3px; }
+  .to-grid-head span { text-align: center; font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bronze); }
+  .to-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .to-cell { background: var(--white); border: 1px solid var(--border); min-height: 62px; padding: 5px; display: flex; flex-direction: column; gap: 3px; }
+  .to-cell.empty { background: transparent; border: none; }
+  .to-cell.today { border-color: var(--bronze); }
+  .to-cell .to-num { font-size: 0.66rem; color: var(--stone); font-variant-numeric: tabular-nums; }
+  .to-cell.today .to-num { color: var(--bronze-deep); font-weight: 500; }
+  .to-chip { font-size: 0.6rem; font-weight: 600; color: #2a2018; border-radius: 3px; padding: 1px 4px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .to-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 16px; }
+  .to-legend span { display: inline-flex; align-items: center; gap: 7px; font-size: 0.8rem; color: var(--stone); }
+  .to-legend .sw { width: 14px; height: 14px; border-radius: 3px; }
+  @media (max-width: 600px) {
+    .po-row { flex-direction: column; gap: 12px; }
+    .to-cell { min-height: 52px; padding: 3px; }
+    .to-chip { font-size: 0.52rem; padding: 1px 3px; }
+    .co-mode .seg-btn, .to-mode .seg-btn { padding: 8px 10px; }
+  }
 
   /* Tasks — board */
   .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; align-items: start; }
@@ -679,6 +743,7 @@
     <button class="tab" id="tabOffer" type="button">Offer calc</button>
     <button class="tab" id="tabTasks" type="button">Tasks</button>
     <button class="tab" id="tabCashout" type="button">Cash out</button>
+    <button class="tab" id="tabTimeoff" type="button" hidden>Time off</button>
   </nav>
 
   <div id="valuationView">
@@ -921,14 +986,104 @@
   </div>
 
   <div id="cashoutView" hidden>
-    <div class="cashout-bar">
-      <div class="co-date"><label for="coDate">Day</label><input type="date" id="coDate" /></div>
-      <div class="co-who">You: <strong id="coYou">—</strong></div>
+    <div class="seg valmode" id="coMode">
+      <button class="seg-btn active" data-cm="daily" type="button">Daily cash out</button>
+      <button class="seg-btn" data-cm="payouts" type="button">Cash payouts</button>
     </div>
-    <div class="co-intro">Photograph each store's end-of-day till cash &amp; Visa totals and save them here. 2–3 clear photos per store; they're stored on the day's record.</div>
-    <div id="coStores"></div>
-    <div class="co-days" id="coDays"></div>
-    <div class="co-msg" id="coMsg"></div>
+
+    <div id="coDaily">
+      <div class="cashout-bar">
+        <div class="co-date"><label for="coDate">Day</label><input type="date" id="coDate" /></div>
+        <div class="co-who">You: <strong id="coYou">—</strong></div>
+      </div>
+      <div class="co-intro">Enter each store's end-of-day totals — cash, Visa, store credit &amp; gift cards — and add 2–3 photos of the till/terminal. Stored on the day's record.</div>
+      <div id="coStores"></div>
+      <div class="co-days" id="coDays"></div>
+      <div class="co-msg" id="coMsg"></div>
+    </div>
+
+    <div id="coPayouts" hidden>
+      <div class="co-intro">Record a cash <b>payout</b> to a seller, or a cash <b>buy</b>. Each entry is dated and logged.</div>
+      <div class="card po-card">
+        <div class="po-row">
+          <div class="po-field">
+            <label>Type</label>
+            <div class="seg po-typeseg" id="poType">
+              <button type="button" class="seg-btn active" data-pt="payout">Payout</button>
+              <button type="button" class="seg-btn" data-pt="buy">Cash buy</button>
+            </div>
+          </div>
+          <div class="po-field"><label for="poDate">Date</label><input type="date" id="poDate" /></div>
+        </div>
+        <div class="po-row">
+          <div class="po-field"><label for="poSeller">Seller / name</label><input id="poSeller" maxlength="120" placeholder="Consignor or seller name" autocomplete="off" /></div>
+          <div class="po-field"><label for="poAccount">Account no. (optional)</label><input id="poAccount" maxlength="60" placeholder="Liberty account" autocomplete="off" /></div>
+        </div>
+        <div class="po-row">
+          <div class="po-field"><label for="poAmount">Amount</label><div class="co-euro"><span>€</span><input type="number" id="poAmount" inputmode="decimal" min="0" step="0.01" placeholder="0.00" /></div></div>
+          <div class="po-field"><label for="poNote">Note (optional)</label><input id="poNote" maxlength="200" placeholder="e.g. item ref / reason" autocomplete="off" /></div>
+        </div>
+        <div class="po-actions"><button class="btn-solid" id="poSave" type="button">Record</button><span class="co-savemsg" id="poMsg"></span></div>
+      </div>
+      <div class="po-listwrap">
+        <div class="po-listhead">Recent entries</div>
+        <div id="poList" class="po-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="timeoffView" hidden>
+    <div class="to-head">
+      <h2>Time off</h2>
+      <div class="co-who">You: <strong id="toYou">—</strong> <button class="linkbtn" id="toSwitch" type="button">switch user</button></div>
+    </div>
+    <div class="to-picker" id="toPicker" hidden>
+      <div class="who-title">Who's requesting?</div>
+      <div class="who-list" id="toWhoList"></div>
+    </div>
+
+    <div id="toMain" hidden>
+      <div class="seg valmode" id="toMode">
+        <button class="seg-btn active" data-tm="request" type="button">Request</button>
+        <button class="seg-btn" data-tm="calendar" type="button">Calendar</button>
+        <button class="seg-btn" data-tm="approvals" type="button" hidden>Approvals <span class="to-badge" id="toBadge" hidden></span></button>
+      </div>
+
+      <div id="toRequest">
+        <div class="card to-card">
+          <div class="co-intro">Request time off — it goes to <b id="toApproverNames">Steve &amp; Ella</b> to approve. Check your name above is right first.</div>
+          <div class="po-row">
+            <div class="po-field"><label for="toStart">From</label><input type="date" id="toStart" /></div>
+            <div class="po-field"><label for="toEnd">To</label><input type="date" id="toEnd" /></div>
+          </div>
+          <div class="po-field"><label for="toNote">Note (optional)</label><input id="toNote" maxlength="200" placeholder="e.g. family holiday" autocomplete="off" /></div>
+          <div class="to-daycount" id="toDayCount"></div>
+          <div class="po-actions"><button class="btn-solid" id="toSubmit" type="button">Submit request</button><span class="co-savemsg" id="toReqMsg"></span></div>
+        </div>
+        <div class="po-listwrap">
+          <div class="po-listhead">Your requests</div>
+          <div id="toMine" class="to-mine"></div>
+        </div>
+      </div>
+
+      <div id="toCalendar" hidden>
+        <div class="to-calbar">
+          <button class="linkbtn" id="toPrev" type="button">‹ Prev</button>
+          <div class="to-calmonth" id="toCalMonth">—</div>
+          <button class="linkbtn" id="toNext" type="button">Next ›</button>
+        </div>
+        <div class="to-grid-head">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div class="to-grid" id="toGrid"></div>
+        <div class="to-legend" id="toLegend"></div>
+      </div>
+
+      <div id="toApprovals" hidden>
+        <div class="co-intro">Pending time-off requests. Approving puts the days on everyone's calendar.</div>
+        <div id="toPending" class="to-pending"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1898,10 +2053,12 @@
   const tabValue = document.getElementById("tabValue");
   const tabOffer = document.getElementById("tabOffer");
   const tabCashout = document.getElementById("tabCashout");
+  const tabTimeoff = document.getElementById("tabTimeoff");
   const valuationView = document.getElementById("valuationView");
   const offerView = document.getElementById("offerView");
   const historyView = document.getElementById("historyView");
   const cashoutView = document.getElementById("cashoutView");
+  const timeoffView = document.getElementById("timeoffView");
   const histStatus = document.getElementById("histStatus");
   const histList = document.getElementById("histList");
   const histDetail = document.getElementById("histDetail");
@@ -1924,6 +2081,7 @@
     tabOffer.onclick = () => showTab("offer");
     tabTasks.onclick = () => showTab("tasks");
     tabCashout.onclick = () => showTab("cashout");
+    tabTimeoff.onclick = () => showTab("timeoff");
     ["ofTicket", "ofOffer", "ofCost"].forEach((id) => (document.getElementById(id).oninput = calcOffer));
     document.querySelectorAll("#ofOwn .seg-btn").forEach((b) =>
       (b.onclick = () => {
@@ -1965,19 +2123,23 @@
     const isValue = which === "value";
     const isOffer = which === "offer";
     const isCashout = which === "cashout";
+    const isTimeoff = which === "timeoff";
     tabValue.classList.toggle("active", isValue);
     tabOffer.classList.toggle("active", isOffer);
     tabTasks.classList.toggle("active", isTasks);
     tabCashout.classList.toggle("active", isCashout);
+    tabTimeoff.classList.toggle("active", isTimeoff);
     valuationView.hidden = !isValue;
     offerView.hidden = !isOffer;
     tasksView.hidden = !isTasks;
     cashoutView.hidden = !isCashout;
+    timeoffView.hidden = !isTimeoff;
     // History is a mode inside the New Valuation view now — hide it unless we're there.
     if (isValue) updateModeUi();
     else historyView.hidden = true;
     if (isTasks) openTasks();
     if (isCashout) openCashout();
+    if (isTimeoff) openTimeoff();
   }
 
   // Offer calculator — branches on ownership. Store-owned: profit vs Liberty cost (30% margin floor).
@@ -2823,14 +2985,293 @@
     return "Saved " + dublinTime(st.updated_at) + (st.updated_by ? " · " + escapeHtml(st.updated_by) : "");
   }
 
+  let coSub = "daily";
   function openCashout() {
     document.getElementById("coYou").textContent = currentUser || "not set";
+    const coModeEl = document.getElementById("coMode");
+    coModeEl.querySelectorAll(".seg-btn").forEach((b) => {
+      b.onclick = () => {
+        coSub = b.dataset.cm;
+        coModeEl.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+        applyCoSub();
+      };
+    });
+    applyCoSub();
+  }
+  function applyCoSub() {
+    document.getElementById("coDaily").hidden = coSub !== "daily";
+    document.getElementById("coPayouts").hidden = coSub !== "payouts";
+    if (coSub === "payouts") { openPayouts(); return; }
     if (!coDate) coDate = coToday();
     const di = document.getElementById("coDate");
-    di.value = coDate;
-    di.max = coToday();
+    di.value = coDate; di.max = coToday();
     di.onchange = (e) => { coDate = e.target.value || coToday(); loadCashout(); };
     loadCashout();
+  }
+
+  // ── Cash payouts ──────────────────────────────────────────────
+  let poType = "payout";
+  function openPayouts() {
+    const dt = document.getElementById("poDate");
+    if (!dt.value) dt.value = coToday();
+    dt.max = coToday();
+    const seg = document.getElementById("poType");
+    seg.querySelectorAll(".seg-btn").forEach((b) => (b.onclick = () => {
+      poType = b.dataset.pt;
+      seg.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+    }));
+    document.getElementById("poSave").onclick = poSaveFn;
+    loadPayouts();
+  }
+  async function loadPayouts() {
+    const list = document.getElementById("poList");
+    list.innerHTML = '<div class="po-empty">Loading…</div>';
+    try {
+      const r = await fetch("/api/payouts", { headers: taskHeaders() });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      renderPayouts(p.payouts || []);
+    } catch (e) { list.innerHTML = '<div class="po-empty">Couldn\'t load.</div>'; }
+  }
+  function renderPayouts(items) {
+    const list = document.getElementById("poList");
+    if (!items.length) { list.innerHTML = '<div class="po-empty">No entries yet.</div>'; return; }
+    list.innerHTML = items.map((p) => {
+      const tag = '<span class="po-tag">' + (p.type === "buy" ? "Buy" : "Payout") + "</span>";
+      const extra = [p.note ? escapeHtml(p.note) : "", p.account ? "a/c " + escapeHtml(p.account) : ""].filter(Boolean).join(" · ");
+      const note = extra ? '<div class="po-note-line">' + extra + "</div>" : "";
+      return '<div class="po-item" data-id="' + escapeHtml(p.id) + '">' +
+        '<span class="po-date">' + coShortDay(p.date) + "</span>" +
+        '<span class="po-who">' + escapeHtml(p.seller || "—") + tag + "</span>" +
+        '<span class="po-amt">€' + Number(p.amount).toLocaleString("en-IE", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + "</span>" +
+        '<button class="po-del" title="Delete" aria-label="Delete">×</button>' +
+        note + "</div>";
+    }).join("");
+    list.querySelectorAll(".po-item").forEach((el) => {
+      el.querySelector(".po-del").onclick = () => deletePayout(el.dataset.id);
+    });
+  }
+  async function poSaveFn() {
+    const btn = document.getElementById("poSave"), msg = document.getElementById("poMsg");
+    const seller = document.getElementById("poSeller").value.trim();
+    const amount = parseFloat(document.getElementById("poAmount").value);
+    if (!seller) { msg.textContent = "Enter a name"; return; }
+    if (isNaN(amount) || amount <= 0) { msg.textContent = "Enter an amount"; return; }
+    btn.disabled = true; const label = btn.textContent; btn.textContent = "Saving…"; msg.textContent = "";
+    try {
+      const r = await fetch("/api/payouts", {
+        method: "POST", headers: taskHeaders(true),
+        body: JSON.stringify({
+          type: poType, date: document.getElementById("poDate").value || coToday(),
+          seller, account: document.getElementById("poAccount").value.trim(),
+          amount, note: document.getElementById("poNote").value.trim(), recorded_by: currentUser || null,
+        }),
+      });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      if (!r.ok) { msg.textContent = p.error || "Save failed"; return; }
+      document.getElementById("poSeller").value = "";
+      document.getElementById("poAccount").value = "";
+      document.getElementById("poAmount").value = "";
+      document.getElementById("poNote").value = "";
+      msg.textContent = "Recorded ✓"; setTimeout(() => { msg.textContent = ""; }, 2500);
+      loadPayouts();
+    } catch (e) { msg.textContent = "Save failed"; }
+    finally { btn.disabled = false; btn.textContent = label; }
+  }
+  async function deletePayout(id) {
+    if (!confirm("Delete this entry?")) return;
+    const r = await fetch("/api/payouts/" + id, { method: "DELETE", headers: taskHeaders() });
+    if (r.status === 401) { relock(); return; }
+    if (r.ok) loadPayouts();
+  }
+
+  // ── Time off / vacation ───────────────────────────────────────
+  let toVacations = [];
+  let toApprovers = ["Steve", "Ella"];
+  let toCalRef = new Date();
+  let toSub = "request";
+  function toIsApprover() {
+    return currentUser && toApprovers.some((a) => a.toLowerCase() === currentUser.toLowerCase());
+  }
+  function vacDays(s, e) {
+    const a = new Date(s + "T00:00:00"), b = new Date(e + "T00:00:00");
+    return Math.round((b - a) / 86400000) + 1;
+  }
+  function userColor(name) {
+    let h = 0; const s = String(name || "");
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+    return "hsl(" + h + " 55% 80%)";
+  }
+  function fmtRange(s, e) {
+    const a = new Date(s + "T00:00:00"), b = new Date(e + "T00:00:00");
+    if (s === e) return a.toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" });
+    return a.toLocaleDateString("en-IE", { day: "numeric", month: "short" }) + " – " +
+      b.toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" }) + " (" + vacDays(s, e) + " days)";
+  }
+
+  function openTimeoff() {
+    document.getElementById("toYou").textContent = currentUser || "not set";
+    if (!currentUser) { showToPicker(); }
+    else { document.getElementById("toPicker").hidden = true; document.getElementById("toMain").hidden = false; }
+    document.getElementById("toSwitch").onclick = showToPicker;
+    const modeEl = document.getElementById("toMode");
+    modeEl.querySelectorAll(".seg-btn").forEach((b) => (b.onclick = () => {
+      toSub = b.dataset.tm;
+      modeEl.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+      applyToSub();
+    }));
+    document.getElementById("toSubmit").onclick = submitVacation;
+    ["toStart", "toEnd"].forEach((id) => (document.getElementById(id).onchange = renderToDayCount));
+    document.getElementById("toPrev").onclick = () => { toCalRef = new Date(toCalRef.getFullYear(), toCalRef.getMonth() - 1, 1); renderTimeoffCalendar(); };
+    document.getElementById("toNext").onclick = () => { toCalRef = new Date(toCalRef.getFullYear(), toCalRef.getMonth() + 1, 1); renderTimeoffCalendar(); };
+    applyToSub();
+    loadVacations();
+  }
+  function showToPicker() {
+    const list = document.getElementById("toWhoList");
+    list.innerHTML = "";
+    (staffList || []).forEach((name) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = name;
+      b.onclick = () => {
+        currentUser = name; localStorage.setItem(STAFF_KEY, name);
+        document.getElementById("toPicker").hidden = true;
+        document.getElementById("toMain").hidden = false;
+        openTimeoff();
+      };
+      list.appendChild(b);
+    });
+    document.getElementById("toPicker").hidden = false;
+    document.getElementById("toMain").hidden = true;
+  }
+  function applyToSub() {
+    document.getElementById("toRequest").hidden = toSub !== "request";
+    document.getElementById("toCalendar").hidden = toSub !== "calendar";
+    document.getElementById("toApprovals").hidden = toSub !== "approvals";
+    if (toSub === "calendar") renderTimeoffCalendar();
+    if (toSub === "approvals") renderToPending();
+  }
+  function renderToDayCount() {
+    const s = document.getElementById("toStart").value, e = document.getElementById("toEnd").value;
+    const el = document.getElementById("toDayCount");
+    if (s && e && e >= s) { const n = vacDays(s, e); el.textContent = n + " day" + (n > 1 ? "s" : "") + " requested"; }
+    else el.textContent = "";
+  }
+  async function loadVacations() {
+    try {
+      const r = await fetch("/api/vacations", { headers: taskHeaders() });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      toVacations = p.vacations || [];
+      if (Array.isArray(p.approvers) && p.approvers.length) toApprovers = p.approvers;
+      document.getElementById("toApproverNames").textContent = toApprovers.join(" & ");
+      const appBtn = document.querySelector('#toMode [data-tm="approvals"]');
+      const pending = toVacations.filter((v) => v.status === "pending");
+      if (appBtn) {
+        appBtn.hidden = !toIsApprover();
+        const badge = document.getElementById("toBadge");
+        if (badge) {
+          if (toIsApprover() && pending.length) { badge.hidden = false; badge.textContent = pending.length; }
+          else badge.hidden = true;
+        }
+      }
+      renderToMine();
+      renderToPending();
+      if (toSub === "calendar") renderTimeoffCalendar();
+    } catch (e) {}
+  }
+  function renderToMine() {
+    const el = document.getElementById("toMine");
+    const mine = toVacations
+      .filter((v) => currentUser && v.staff.toLowerCase() === currentUser.toLowerCase())
+      .sort((a, b) => (a.start_date < b.start_date ? 1 : -1));
+    if (!mine.length) { el.innerHTML = '<div class="po-empty">No requests yet.</div>'; return; }
+    el.innerHTML = mine.map((v) =>
+      '<div class="to-req"><span class="to-when">' + fmtRange(v.start_date, v.end_date) + "</span>" +
+      '<span class="to-status ' + v.status + '">' + v.status + "</span>" +
+      (v.note ? '<div class="to-sub">' + escapeHtml(v.note) + "</div>" : "") +
+      (v.decided_by ? '<div class="to-sub">' + (v.status === "approved" ? "Approved" : "Declined") + " by " + escapeHtml(v.decided_by) + "</div>" : "") +
+      (v.status === "pending" ? '<div class="to-sub"><button class="to-btn decline" data-cancel="' + v.id + '">Cancel request</button></div>' : "") +
+      "</div>").join("");
+    el.querySelectorAll("[data-cancel]").forEach((b) => (b.onclick = () => cancelVacation(b.dataset.cancel)));
+  }
+  function renderToPending() {
+    const el = document.getElementById("toPending");
+    if (!el) return;
+    if (!toIsApprover()) { el.innerHTML = '<div class="po-empty">Only ' + toApprovers.join(" or ") + " can approve time off.</div>"; return; }
+    const pending = toVacations.filter((v) => v.status === "pending");
+    if (!pending.length) { el.innerHTML = '<div class="po-empty">No pending requests.</div>'; return; }
+    el.innerHTML = pending.map((v) =>
+      '<div class="to-req"><span class="to-who"><b>' + escapeHtml(v.staff) + "</b></span>" +
+      '<span class="to-when">' + fmtRange(v.start_date, v.end_date) + "</span>" +
+      (v.note ? '<div class="to-sub">' + escapeHtml(v.note) + "</div>" : "") +
+      '<div class="to-sub to-actions"><button class="to-btn approve" data-app="' + v.id + '">Approve</button>' +
+      '<button class="to-btn decline" data-dec="' + v.id + '">Decline</button></div>' +
+      "</div>").join("");
+    el.querySelectorAll("[data-app]").forEach((b) => (b.onclick = () => decideVacation(b.dataset.app, "approved")));
+    el.querySelectorAll("[data-dec]").forEach((b) => (b.onclick = () => decideVacation(b.dataset.dec, "declined")));
+  }
+  async function submitVacation() {
+    const btn = document.getElementById("toSubmit"), msg = document.getElementById("toReqMsg");
+    if (!currentUser) { msg.textContent = "Pick your name first"; showToPicker(); return; }
+    const s = document.getElementById("toStart").value, e = document.getElementById("toEnd").value;
+    if (!s || !e) { msg.textContent = "Pick both dates"; return; }
+    if (e < s) { msg.textContent = "End is before start"; return; }
+    btn.disabled = true; const label = btn.textContent; btn.textContent = "Submitting…"; msg.textContent = "";
+    try {
+      const r = await fetch("/api/vacations", {
+        method: "POST", headers: taskHeaders(true),
+        body: JSON.stringify({ staff: currentUser, start_date: s, end_date: e, note: document.getElementById("toNote").value.trim() }),
+      });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      if (!r.ok) { msg.textContent = p.error || "Failed"; return; }
+      document.getElementById("toNote").value = ""; document.getElementById("toDayCount").textContent = "";
+      msg.textContent = "Request sent ✓"; setTimeout(() => { msg.textContent = ""; }, 3000);
+      loadVacations();
+    } catch (e) { msg.textContent = "Failed"; }
+    finally { btn.disabled = false; btn.textContent = label; }
+  }
+  async function decideVacation(id, status) {
+    const r = await fetch("/api/vacations/" + id, {
+      method: "PATCH", headers: taskHeaders(true),
+      body: JSON.stringify({ status, decided_by: currentUser }),
+    });
+    if (r.status === 401) { relock(); return; }
+    if (r.ok) loadVacations();
+    else { const p = await r.json().catch(() => ({})); alert(p.error || "Couldn't update."); }
+  }
+  async function cancelVacation(id) {
+    if (!confirm("Cancel this request?")) return;
+    const r = await fetch("/api/vacations/" + id, { method: "DELETE", headers: taskHeaders() });
+    if (r.status === 401) { relock(); return; }
+    if (r.ok) loadVacations();
+  }
+  function renderTimeoffCalendar() {
+    const grid = document.getElementById("toGrid");
+    if (!grid) return;
+    const ref = toCalRef, year = ref.getFullYear(), month = ref.getMonth();
+    document.getElementById("toCalMonth").textContent = ref.toLocaleDateString("en-IE", { month: "long", year: "numeric" });
+    const first = new Date(year, month, 1);
+    const startWeekday = (first.getDay() + 6) % 7; // Monday-first
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayStr = coToday();
+    const approved = toVacations.filter((v) => v.status === "approved");
+    const pad = (n) => String(n).padStart(2, "0");
+    let cells = "";
+    for (let i = 0; i < startWeekday; i++) cells += '<div class="to-cell empty"></div>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = year + "-" + pad(month + 1) + "-" + pad(d);
+      const onDay = approved.filter((v) => v.start_date <= ds && ds <= v.end_date);
+      const chips = onDay.map((v) => '<span class="to-chip" style="background:' + userColor(v.staff) + '" title="' + escapeHtml(v.staff) + '">' + escapeHtml(initials(v.staff)) + "</span>").join("");
+      cells += '<div class="to-cell' + (ds === todayStr ? " today" : "") + '"><span class="to-num">' + d + "</span>" + chips + "</div>";
+    }
+    grid.innerHTML = cells;
+    const mStart = year + "-" + pad(month + 1) + "-01", mEnd = year + "-" + pad(month + 1) + "-" + pad(daysInMonth);
+    const names = [...new Set(approved.filter((v) => v.end_date >= mStart && v.start_date <= mEnd).map((v) => v.staff))];
+    document.getElementById("toLegend").innerHTML = names.length
+      ? names.map((n) => '<span><span class="sw" style="background:' + userColor(n) + '"></span>' + escapeHtml(n) + "</span>").join("")
+      : '<span style="color:var(--bronze-pale)">No approved time off this month.</span>';
   }
 
   async function loadCashout() {
@@ -2848,6 +3289,8 @@
           images: rec && Array.isArray(rec.images) ? rec.images.slice() : [],
           cash: rec && rec.cash != null ? rec.cash : "",
           visa: rec && rec.visa != null ? rec.visa : "",
+          credit: rec && rec.credit != null ? rec.credit : "",
+          giftcard: rec && rec.giftcard != null ? rec.giftcard : "",
           updated_by: rec ? rec.updated_by : null,
           updated_at: rec ? rec.updated_at : null,
         };
@@ -2870,6 +3313,10 @@
             '<input type="number" inputmode="decimal" min="0" step="0.01" id="coCash' + s + '" placeholder="0.00"></div></div>' +
           '<div class="co-field"><label>Visa</label><div class="co-euro"><span>€</span>' +
             '<input type="number" inputmode="decimal" min="0" step="0.01" id="coVisa' + s + '" placeholder="0.00"></div></div>' +
+          '<div class="co-field"><label>Store credit</label><div class="co-euro"><span>€</span>' +
+            '<input type="number" inputmode="decimal" min="0" step="0.01" id="coCredit' + s + '" placeholder="0.00"></div></div>' +
+          '<div class="co-field"><label>Gift card</label><div class="co-euro"><span>€</span>' +
+            '<input type="number" inputmode="decimal" min="0" step="0.01" id="coGift' + s + '" placeholder="0.00"></div></div>' +
         "</div>" +
         '<div class="co-total" id="coTotal' + s + '"></div>' +
         '<div class="tf-thumbs" id="coThumbs' + s + '"></div>' +
@@ -2881,11 +3328,18 @@
     CO_STORES.forEach((s) => {
       const cash = document.getElementById("coCash" + s);
       const visa = document.getElementById("coVisa" + s);
+      const credit = document.getElementById("coCredit" + s);
+      const gift = document.getElementById("coGift" + s);
       cash.value = coState[s].cash;
       visa.value = coState[s].visa;
-      const upd = () => { coState[s].cash = cash.value; coState[s].visa = visa.value; coRenderTotal(s); };
-      cash.oninput = upd;
-      visa.oninput = upd;
+      credit.value = coState[s].credit;
+      gift.value = coState[s].giftcard;
+      const upd = () => {
+        coState[s].cash = cash.value; coState[s].visa = visa.value;
+        coState[s].credit = credit.value; coState[s].giftcard = gift.value;
+        coRenderTotal(s);
+      };
+      cash.oninput = upd; visa.oninput = upd; credit.oninput = upd; gift.oninput = upd;
       document.getElementById("coFile" + s).onchange = (e) => coAddPhotos(s, e);
       document.getElementById("coSave" + s).onclick = () => coSave(s);
       renderCoThumbs(s);
@@ -2917,10 +3371,10 @@
   function coRenderTotal(s) {
     const el = document.getElementById("coTotal" + s);
     if (!el) return;
-    const c = parseFloat(coState[s].cash), v = parseFloat(coState[s].visa);
-    const hasC = !isNaN(c), hasV = !isNaN(v);
-    if (!hasC && !hasV) { el.textContent = ""; return; }
-    const tot = (hasC ? c : 0) + (hasV ? v : 0);
+    const nums = ["cash", "visa", "credit", "giftcard"]
+      .map((k) => parseFloat(coState[s][k])).filter((n) => !isNaN(n));
+    if (!nums.length) { el.textContent = ""; return; }
+    const tot = nums.reduce((a, b) => a + b, 0);
     el.innerHTML = "Day total: <b>€" + tot.toLocaleString("en-IE", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + "</b>";
   }
 
@@ -2973,7 +3427,7 @@
     try {
       const r = await fetch("/api/cashouts", {
         method: "POST", headers: taskHeaders(true),
-        body: JSON.stringify({ date: coDate, store: s, images: coState[s].images, cash: coState[s].cash, visa: coState[s].visa, updated_by: currentUser || null }),
+        body: JSON.stringify({ date: coDate, store: s, images: coState[s].images, cash: coState[s].cash, visa: coState[s].visa, credit: coState[s].credit, giftcard: coState[s].giftcard, updated_by: currentUser || null }),
       });
       if (r.status === 401) { relock(); return; }
       if (!r.ok) { msg.textContent = "Save failed"; return; }
