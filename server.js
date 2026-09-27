@@ -575,9 +575,9 @@ const cashoutStore = {
     return cashoutRead().filter((r) => r.date === date);
   },
   // One row per (date, store); the frontend sends the full image set, so we replace.
-  async upsert(date, store, images, cash, visa, by) {
+  async upsert(date, store, images, cash, visa, credit, giftcard, by) {
     const now = new Date().toISOString();
-    const fields = { images, cash, visa, updated_by: by || null, updated_at: now };
+    const fields = { images, cash, visa, credit, giftcard, updated_by: by || null, updated_at: now };
     if (supabase) {
       // Find today's row for this store; update it, or insert a fresh one with a generated id
       // (the id column has no DB default, so we must supply it, like the tasks table does).
@@ -614,6 +614,8 @@ const cashoutStore = {
       images,
       cash,
       visa,
+      credit,
+      giftcard,
       updated_by: by || null,
       created_at: i >= 0 ? arr[i].created_at : now,
       updated_at: now,
@@ -637,6 +639,137 @@ const cashoutStore = {
     return seen.slice(0, limit);
   },
 };
+
+// ── Cash payouts / buys (paying sellers in cash) ──────────────────
+const PAYOUTS_FILE = join(__dirname, "payouts.local.json");
+function payoutsRead() {
+  try { return existsSync(PAYOUTS_FILE) ? JSON.parse(readFileSync(PAYOUTS_FILE, "utf8")) : []; } catch { return []; }
+}
+function payoutsWrite(a) { writeFileSync(PAYOUTS_FILE, JSON.stringify(a, null, 2)); }
+const payoutStore = {
+  async list(limit = 200) {
+    if (supabase) {
+      const { data, error } = await supabase.from("payouts").select("*")
+        .order("date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+    return payoutsRead().slice()
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (a.created_at < b.created_at ? 1 : -1)))
+      .slice(0, limit);
+  },
+  async create(p) {
+    const row = {
+      id: randomUUID(), date: p.date, type: p.type || "payout", seller: p.seller,
+      account: p.account || null, amount: p.amount, note: p.note || null,
+      recorded_by: p.by || null, created_at: new Date().toISOString(),
+    };
+    if (supabase) {
+      const { error } = await supabase.from("payouts").insert(row);
+      if (error) throw new Error(error.message);
+    } else {
+      const arr = payoutsRead(); arr.push(row); payoutsWrite(arr);
+    }
+    return row;
+  },
+  async remove(id) {
+    if (supabase) {
+      const { error } = await supabase.from("payouts").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    } else {
+      payoutsWrite(payoutsRead().filter((r) => r.id !== id));
+    }
+    return true;
+  },
+};
+
+// ── Vacation / time-off requests ──────────────────────────────────
+const VAC_FILE = join(__dirname, "vacations.local.json");
+const VACATION_APPROVERS = (process.env.VACATION_APPROVERS || "Steve,Ella").split(",").map((s) => s.trim()).filter(Boolean);
+function vacRead() {
+  try { return existsSync(VAC_FILE) ? JSON.parse(readFileSync(VAC_FILE, "utf8")) : []; } catch { return []; }
+}
+function vacWrite(a) { writeFileSync(VAC_FILE, JSON.stringify(a, null, 2)); }
+const vacationStore = {
+  async list() {
+    if (supabase) {
+      const { data, error } = await supabase.from("vacations").select("*").order("start_date", { ascending: true });
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+    return vacRead().slice().sort((a, b) => (a.start_date < b.start_date ? -1 : 1));
+  },
+  async create(v) {
+    const row = {
+      id: randomUUID(), staff: v.staff, start_date: v.start_date, end_date: v.end_date,
+      note: v.note || null, status: "pending", decided_by: null,
+      created_at: new Date().toISOString(), decided_at: null,
+    };
+    if (supabase) {
+      const { error } = await supabase.from("vacations").insert(row);
+      if (error) throw new Error(error.message);
+    } else {
+      const arr = vacRead(); arr.push(row); vacWrite(arr);
+    }
+    return row;
+  },
+  async decide(id, status, by) {
+    const patch = { status, decided_by: by, decided_at: new Date().toISOString() };
+    if (supabase) {
+      const { data, error } = await supabase.from("vacations").update(patch).eq("id", id).select().maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    const arr = vacRead(); const i = arr.findIndex((r) => r.id === id);
+    if (i < 0) return null;
+    arr[i] = { ...arr[i], ...patch }; vacWrite(arr);
+    return arr[i];
+  },
+  async remove(id) {
+    if (supabase) {
+      const { error } = await supabase.from("vacations").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    } else {
+      vacWrite(vacRead().filter((r) => r.id !== id));
+    }
+    return true;
+  },
+};
+
+// ── End-of-month supplies reminder (auto-posted to Team Updates) ───
+const SUPPLIES_REMINDER = "🧾 End-of-month supplies check — please check stock of shipping boxes, credit & receipt rolls, price tags, printer inks (all types), wrapping paper, etc. If anything is running low, add it to the task list.";
+const SUPPLIES_TASK_TITLE = "End-of-month supplies check — count shipping boxes, credit & receipt rolls, price tags, printer inks, wrapping paper, etc. and reorder anything low.";
+const SUPPLIES_TASK_ASSIGNEE = process.env.SUPPLIES_ASSIGNEE || "Sabina";
+function isLastDayOfMonth(d = new Date()) {
+  const [y, m, day] = dublinDate(d).split("-").map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate(); // day 0 of next month = last day of this one
+  return day === lastDay;
+}
+async function ensureMonthlyReminder() {
+  try {
+    if (!isLastDayOfMonth()) return;
+    const month = dublinDate().slice(0, 7); // YYYY-MM
+    // 1) Post to Team Updates (once per month)
+    const msgs = await msgStore.list();
+    const msgExists = msgs.some((m) =>
+      m.author === "Reminder" &&
+      String(m.text || "").includes("supplies check") &&
+      String(m.created_at || "").slice(0, 7) === month);
+    if (!msgExists) await msgStore.add(SUPPLIES_REMINDER, "Reminder");
+    // 2) Add a task to the supplies assignee's list (once per month)
+    const tasks = await taskStore.list();
+    const taskExists = tasks.some((t) =>
+      String(t.assignee || "").toLowerCase() === SUPPLIES_TASK_ASSIGNEE.toLowerCase() &&
+      String(t.title || "").includes("supplies check") &&
+      String(t.created_at || "").slice(0, 7) === month);
+    if (!taskExists) {
+      await taskStore.create(
+        { title: SUPPLIES_TASK_TITLE, assignee: SUPPLIES_TASK_ASSIGNEE, priority: "med", status: "todo", due_date: dublinDate() },
+        "Reminder"
+      );
+    }
+  } catch (e) { console.error("Monthly reminder failed:", e.message); }
+}
 
 // A few sample tasks so the local board isn't empty while testing.
 function seedTasks() {
@@ -723,6 +856,7 @@ app.delete("/api/staff/:name", requireCode, async (req, res) => {
 // Message board.
 app.get("/api/messages", requireCode, async (req, res) => {
   try {
+    await ensureMonthlyReminder();
     res.json({ messages: await msgStore.list() });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -1509,8 +1643,99 @@ app.post("/api/cashouts", requireCode, async (req, res) => {
     if (!CASHOUT_STORES.includes(store)) return res.status(400).json({ error: "Unknown store." });
     const images = await processCashoutImages(b.images || [], date, store);
     const num = (x) => { const n = Number(x); return x === "" || x == null || !Number.isFinite(n) ? null : n; };
-    const cashout = await cashoutStore.upsert(date, store, images, num(b.cash), num(b.visa), b.updated_by);
+    const cashout = await cashoutStore.upsert(date, store, images, num(b.cash), num(b.visa), num(b.credit), num(b.giftcard), b.updated_by);
     res.json({ cashout });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Cash payouts API ──────────────────────────────────────────────
+app.get("/api/payouts", requireCode, async (req, res) => {
+  try {
+    res.json({ payouts: await payoutStore.list() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/payouts", requireCode, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const amount = Number(b.amount);
+    if (!b.seller || !String(b.seller).trim()) return res.status(400).json({ error: "Seller name is required." });
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: "Enter a valid amount." });
+    const payout = await payoutStore.create({
+      date: (b.date && String(b.date).slice(0, 10)) || dublinDate(),
+      type: b.type === "buy" ? "buy" : "payout",
+      seller: String(b.seller).trim().slice(0, 120),
+      account: b.account ? String(b.account).trim().slice(0, 60) : null,
+      amount,
+      note: b.note ? String(b.note).slice(0, 300) : null,
+      by: b.recorded_by || null,
+    });
+    res.json({ payout });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete("/api/payouts/:id", requireCode, async (req, res) => {
+  try {
+    await payoutStore.remove(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Vacation / time-off API ───────────────────────────────────────
+app.get("/api/vacations", requireCode, async (req, res) => {
+  try {
+    res.json({ vacations: await vacationStore.list(), approvers: VACATION_APPROVERS });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/vacations", requireCode, async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!b.staff || !String(b.staff).trim()) return res.status(400).json({ error: "Pick who you are first." });
+    if (!b.start_date || !b.end_date) return res.status(400).json({ error: "Pick a start and end date." });
+    const start = String(b.start_date).slice(0, 10), end = String(b.end_date).slice(0, 10);
+    if (end < start) return res.status(400).json({ error: "The end date can't be before the start date." });
+    const vac = await vacationStore.create({
+      staff: String(b.staff).trim().slice(0, 80), start_date: start, end_date: end,
+      note: b.note ? String(b.note).slice(0, 300) : null,
+    });
+    res.json({ vacation: vac });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch("/api/vacations/:id", requireCode, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const by = String(b.decided_by || "").trim();
+    if (!VACATION_APPROVERS.some((a) => a.toLowerCase() === by.toLowerCase())) {
+      return res.status(403).json({ error: "Only " + VACATION_APPROVERS.join(" or ") + " can approve time off." });
+    }
+    const status = b.status === "approved" ? "approved" : b.status === "declined" ? "declined" : null;
+    if (!status) return res.status(400).json({ error: "Invalid decision." });
+    const vac = await vacationStore.decide(req.params.id, status, by);
+    if (!vac) return res.status(404).json({ error: "Request not found." });
+    res.json({ vacation: vac });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete("/api/vacations/:id", requireCode, async (req, res) => {
+  try {
+    await vacationStore.remove(req.params.id);
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
