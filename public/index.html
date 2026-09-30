@@ -1618,10 +1618,11 @@
   // ── Consignment split calculator ──────────────────────────────
   // Siopaella's commission by sale price. Seller receives the remainder.
   function splitFor(price) {
-    if (price < 250) return { code: "A", pct: 60 };
-    if (price < 650) return { code: "H", pct: 50 };
-    if (price < 750) return { code: "I", pct: 40 };
-    if (price < 4000) return { code: "M", pct: 30 };
+    if (price <= 499) return { code: "A", pct: 60 };
+    if (price <= 750) return { code: "H", pct: 50 };
+    if (price <= 999) return { code: "I", pct: 40 };
+    if (price <= 2000) return { code: "J", pct: 35 };
+    if (price <= 4000) return { code: "M", pct: 30 };
     return { code: "R", pct: 20 };
   }
   function splitCalcHtml(d) {
@@ -1637,7 +1638,7 @@
         '<div class="split-cell"><div class="k">Siopaella keeps</div><div class="v split-ours">—</div></div>' +
         '<div class="split-cell"><div class="k">Seller receives</div><div class="v split-seller">—</div></div>' +
       "</div>" +
-      '<p class="split-note">Under €250 = 60% (A) · €250–649 = 50% (H) · €650–749 = 40% (I) · €750–3,999 = 30% (M) · €4,000+ = 20% (R)</p>' +
+      '<p class="split-note">€1–499 = 60% (A) · €500–750 = 50% (H) · €751–999 = 40% (I) · €1,000–2,000 = 35% (J) · €2,001–4,000 = 30% (M) · €4,001+ = 20% (R)</p>' +
       "</div>"
     );
   }
@@ -1695,7 +1696,7 @@
       '<table class="slip-table"><thead><tr><th>Item</th><th>Sale price</th><th>Split</th><th class="pay">Seller receives</th></tr></thead>' +
       "<tbody>" + body + totalsRow + "</tbody></table>" +
       '<div class="slip-sign"><div>Seller signature</div><div>Staff &middot; date</div></div>' +
-      '<div class="slip-foot">Prices are estimates pending sale. Consignment split: under €250 = 60% &middot; €250–649 = 50% &middot; €650–749 = 40% &middot; €750–3,999 = 30% &middot; €4,000+ = 20% to Siopaella.</div>';
+      '<div class="slip-foot">Prices are estimates pending sale. Consignment split: €1–499 = 60% &middot; €500–750 = 50% &middot; €751–999 = 40% &middot; €1,000–2,000 = 35% &middot; €2,001–4,000 = 30% &middot; €4,001+ = 20% to Siopaella.</div>';
     // Show the slip in-app (with a Close button) so staff can return without quitting.
     const ov = document.createElement("div");
     ov.className = "slip-overlay";
