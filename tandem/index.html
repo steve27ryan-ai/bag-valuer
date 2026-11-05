@@ -583,7 +583,10 @@ To: <email address if known, else leave blank>
 Subject: <subject>
 
 - If it's a text message, give the message ready to paste.
-- Otherwise use short Markdown: "##" headings, "-" bullets, numbered steps. No preamble, no sign-off chatter.
+- Otherwise use Markdown: "##" headings, "-" bullets, numbered steps. No preamble, no sign-off chatter.
+- Deliver the complete, usable thing, never just ideas or suggestions. If they would still have to go and look something up, include it.
+- Meal plans and anything about food: give a full recipe for every meal. For each: "## Day: Dish name", serves and total time, an ingredients list with metric quantities, and numbered method steps. Keep recipes practical for a weeknight. End with "## Shopping list" grouped by aisle (veg, meat and fish, dairy, cupboard), with quantities totalled across the week.
+- Itineraries include times and order; plans include who does what and when; comparisons use a short table or side-by-side bullets with a clear recommendation.
 - Where you rely on facts that change (prices, opening hours, policies), say so briefly and suggest what to check.
 - Write in clear, warm, natural Irish/UK English. Use euro.
 
@@ -611,6 +614,7 @@ async function doWork(id, quiet) {
       onText: ({ text }) => { finalText = text; if (inSheet() && sheetCtx.streaming) { const o = $("out"); if (o) o.innerHTML = renderOutput(text) + '<span class="cursor"></span>'; } }
     });
     finalText = r.text;
+    if (r.truncated) finalText += "\n\n*This was cut short because it ran too long. Add a note asking for fewer days or meals, then tap Redo.*";
     await store.update(id, { work: { text: finalText, at: Date.now(), by: S.me.id || "" }, working: null }).catch(() => {});
     if (!inSheet()) toast(`Ready: ${t.title.slice(0, 40)}`);
   } catch (e) {
