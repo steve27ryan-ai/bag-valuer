@@ -818,6 +818,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.static(join(__dirname, "public")));
+app.use("/recipes", express.static(join(__dirname, "recipes"))); // Look What Steve Made! recipe app
 
 // Tells the frontend whether a passcode is required, whether history is on, and the staff list.
 app.get("/api/session", async (req, res) => {

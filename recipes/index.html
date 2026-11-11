@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- /standalone-head -->
+<title>Look What Steve Made!</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a kitchen notebook — cover band, filterable photo grid, then a two-column recipe sheet (ingredients pinned beside the method) that stacks on phones; cook mode is a full-screen one-step-at-a-time card. */
+:root {
+  --bg: #f6f7f3;
+  --surface: #ffffff;
+  --ink: #1b2620;
+  --muted: #5d6b63;
+  --line: #dde3dc;
+  --accent: #234a3a;       /* the bottle green from the book */
+  --accent-ink: #ffffff;
+  --accent-soft: #e3ece6;
+  --spice: #c98a12;        /* saffron, used only for "done" and timers */
+  --spice-soft: #fbf0d6;
+  --shadow: 0 1px 2px rgba(27,38,32,.06), 0 8px 24px rgba(27,38,32,.06);
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121815; --surface: #1a221e; --ink: #e8eee9; --muted: #9aaaa1; --line: #2b3631;
+  --accent: #8fc7a9; --accent-ink: #0f1a14; --accent-soft: #1f2d26;
+  --spice: #e6b04a; --spice-soft: #2e2615; --shadow: 0 1px 2px rgba(0,0,0,.3);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #121815; --surface: #1a221e; --ink: #e8eee9; --muted: #9aaaa1; --line: #2b3631;
+  --accent: #8fc7a9; --accent-ink: #0f1a14; --accent-soft: #1f2d26;
+  --spice: #e6b04a; --spice-soft: #2e2615; --shadow: 0 1px 2px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 16px/1.55 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 1080px; margin: 0 auto; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--spice); outline-offset: 2px; border-radius: 6px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.05; }
+.mono { font-family: var(--f-mono); font-size: .8rem; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+
+/* Top bar */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; align-items: center; gap: 12px; padding-block: 12px;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 1.1rem; color: var(--accent); text-decoration: none; margin-right: auto; white-space: nowrap; }
+.pill-btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface);
+  border-radius: 999px; padding: 7px 14px; font-size: .9rem; font-weight: 600;
+}
+.pill-btn:hover { border-color: var(--accent); }
+a.pill-btn { color: var(--ink); text-decoration: none; }
+#listBtn { white-space: nowrap; } .lbl-short { display: none; }
+@media (max-width: 420px) { .brand { font-size: 1rem; } #listBtn .lbl-long { display: none; } #listBtn .lbl-short { display: inline; } }
+.pill-btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.count { background: var(--spice); color: #1b1405; border-radius: 999px; font-size: .72rem; padding: 0 7px; font-weight: 700; }
+
+/* Home */
+.cover { position: relative; margin-top: 20px; border-radius: 18px; overflow: hidden; background: var(--accent); }
+.cover img { display: block; width: 100%; height: clamp(170px, 30vw, 320px); object-fit: cover; object-position: center 40%; }
+.cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,20,15,0) 30%, rgba(10,20,15,.78)); }
+.cover-text { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: clamp(16px, 4vw, 32px); color: #fff; }
+.cover h1 { font-size: clamp(2.2rem, 7vw, 4.4rem); font-weight: 800; letter-spacing: -.02em; }
+.cover p { margin: 6px 0 0; font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; opacity: .9; }
+
+.tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 22px 0 18px; }
+.search { flex: 1 1 260px; min-width: 0; position: relative; }
+.search input {
+  width: 100%; padding: 11px 14px 11px 40px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); font: inherit;
+}
+.search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 6px 13px; font-size: .88rem; color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 18px; }
+.card {
+  display: flex; flex-direction: column; text-align: left; padding: 0; border: 1px solid var(--line);
+  background: var(--surface); border-radius: 14px; overflow: hidden; transition: transform .18s, box-shadow .18s;
+}
+.card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.thumb { position: relative; aspect-ratio: 3 / 2; max-width: 100%; background: var(--accent-soft); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .no { position: absolute; top: 8px; left: 8px; background: var(--surface); color: var(--accent); border-radius: 999px; padding: 1px 8px; }
+.fav-dot { position: absolute; top: 8px; right: 8px; background: var(--surface); color: var(--spice); border-radius: 999px; width: 28px; height: 28px; display: grid; place-items: center; }
+.card-body { padding: 12px 14px 14px; display: grid; gap: 4px; }
+.card h3 { font-size: 1.15rem; font-weight: 700; }
+.meta { color: var(--muted); font-size: .86rem; }
+.empty { padding: 40px 0; color: var(--muted); text-align: center; }
+
+/* Illustrated stand-in for recipes without a photo */
+.art { width: 100%; height: 100%; display: grid; place-items: center; background:
+  radial-gradient(circle at 30% 35%, var(--spice-soft) 0 22%, transparent 23%),
+  radial-gradient(circle at 70% 65%, var(--spice-soft) 0 18%, transparent 19%),
+  var(--accent-soft); color: var(--accent); }
+.art span { font-family: var(--f-display); font-weight: 800; font-size: 1.4rem; text-align: center; padding: 0 12px; line-height: 1.1; }
+
+/* Recipe */
+.back { margin: 18px 0 12px; }
+.r-head { display: grid; gap: 20px; grid-template-columns: 1fr; align-items: end; }
+@media (min-width: 760px) { .r-head { grid-template-columns: 1.1fr 1fr; } }
+.r-photo { border-radius: 16px; overflow: hidden; aspect-ratio: 3 / 2; max-width: 100%; background: var(--accent-soft); }
+.r-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.r-photo .art span { font-size: 2.2rem; }
+.r-title .eyebrow { color: var(--accent); }
+.r-title h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -.02em; margin: 6px 0 14px; color: var(--ink); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.fact { background: var(--accent-soft); color: var(--accent); border-radius: 8px; padding: 5px 10px; font-weight: 600; font-size: .9rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.sheet { display: grid; gap: 28px; margin-top: 30px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .sheet { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); } .ing-box { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); } }
+.ing-box { align-self: start; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sec-h h2 { font-size: 1.3rem; font-weight: 700; }
+.link-btn { background: none; border: 0; color: var(--muted); font-size: .82rem; text-decoration: underline; padding: 2px; }
+.ing { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
+.ing label { display: flex; gap: 10px; align-items: flex-start; padding: 7px 4px; border-radius: 8px; cursor: pointer; }
+.ing label:hover { background: var(--accent-soft); }
+.ing input { appearance: none; flex: 0 0 auto; width: 20px; height: 20px; margin: 2px 0 0; border: 2px solid var(--line); border-radius: 6px; background: var(--surface); display: grid; place-items: center; cursor: pointer; }
+.ing input:checked { background: var(--spice); border-color: var(--spice); }
+.ing input:checked::after { content: ""; width: 5px; height: 10px; border: solid #1b1405; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+.ing input:checked + span { color: var(--muted); text-decoration: line-through; }
+.opt { font-size: .74rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
+
+.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; counter-reset: s; }
+.step { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; text-align: left; width: 100%; }
+.step .n { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-family: var(--f-display); font-weight: 700; }
+.step.done { background: transparent; }
+.step.done .n { background: var(--spice); color: #1b1405; }
+.step.done .txt { color: var(--muted); }
+.step .txt { font-size: 1.02rem; max-width: 62ch; }
+.timer-btn { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; border: 1px solid var(--spice); background: var(--spice-soft); color: var(--ink); border-radius: 999px; padding: 3px 11px; font-size: .84rem; font-weight: 600; }
+.hint { color: var(--muted); font-size: .84rem; margin-top: 12px; }
+.temp { font-family: var(--f-mono); font-size: .9em; background: var(--accent-soft); color: var(--accent); padding: 0 4px; border-radius: 4px; }
+
+/* Cook mode */
+.cook { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: flex; flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px)); }
+.cook-top { display: flex; align-items: center; gap: 10px; max-width: 900px; width: 100%; margin: 0 auto; }
+.cook-top .t { margin-right: auto; font-family: var(--f-display); font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.progress { display: flex; gap: 4px; max-width: 900px; width: 100%; margin: 12px auto 0; }
+.progress i { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
+.progress i.on { background: var(--accent); }
+.cook-main { flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 900px; width: 100%; margin: 0 auto; gap: 18px; overflow-y: auto; }
+.cook-main .eyebrow { color: var(--accent); }
+.cook-main p { font-family: var(--f-display); font-weight: 500; font-size: clamp(1.6rem, 4.6vw, 2.8rem); line-height: 1.2; margin: 0; text-wrap: pretty; }
+.cook-nav { display: flex; gap: 10px; max-width: 900px; width: 100%; margin: 0 auto; }
+.cook-nav button { flex: 1; padding: 16px; border-radius: 14px; font-weight: 700; font-size: 1.05rem; border: 1px solid var(--line); background: var(--surface); }
+.cook-nav .next { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.cook-nav button:disabled { opacity: .4; cursor: default; }
+
+/* Timers dock */
+.timers { position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); display: grid; gap: 8px; justify-items: end; }
+.timer { display: flex; align-items: center; gap: 10px; background: var(--ink); color: var(--bg); border-radius: 999px; padding: 8px 8px 8px 16px; box-shadow: var(--shadow); }
+.timer .clock { font-family: var(--f-mono); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.timer .lbl { font-size: .8rem; opacity: .75; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timer button { background: var(--bg); color: var(--ink); border: 0; border-radius: 999px; padding: 4px 10px; font-size: .8rem; font-weight: 700; }
+.timer.ring { background: var(--spice); color: #1b1405; animation: pulse 1s infinite; }
+@keyframes pulse { 50% { transform: scale(1.04); } }
+
+/* Shopping list drawer */
+.drawer-bg { position: fixed; inset: 0; z-index: 15; background: rgba(10,20,15,.45); }
+.drawer { position: fixed; z-index: 16; top: 0; right: 0; bottom: 0; width: min(420px, 100%); background: var(--surface); border-left: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) max(18px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 18px) 18px; }
+.drawer-body { flex: 1; overflow-y: auto; margin: 12px 0; }
+.drawer h3 { font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-family: var(--f-body); font-weight: 600; margin: 14px 0 4px; }
+.drawer-foot { display: flex; gap: 8px; flex-wrap: wrap; }
+.toast { position: fixed; z-index: 40; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: .92rem; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+<!-- standalone-body -->
+</head>
+<body>
+<!-- /standalone-body -->
+
+<div class="wrap">
+  <header class="bar">
+    <a class="brand" href="#">Look What Steve Made!</a>
+    <button class="pill-btn" id="listBtn" type="button" aria-label="Open shopping list">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      <span class="lbl-long">Shopping list</span><span class="lbl-short">List</span> <span class="count" id="listCount" hidden>0</span>
+    </button>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="timers" id="timers" aria-live="polite"></div>
+
+<script>
+const RECIPES = [
+  { id: "smoky-chorizo-chilli", no: 1, title: "Smoky Chorizo & Three-Bean Chilli", serves: "4–6 servings", time: "45–55 min", mins: 55, tags: ["Beef & pork", "One pot"], img: "img/smoky-chorizo-chilli.jpg",
+    ingredients: ["150–200g chorizo, diced", "1 onion, 1 leek and 2 peppers, chopped", "2 fresh tomatoes and 1 × 400g tin chopped tomatoes", "1–2 tbsp tomato paste", "1 tin each kidney, pinto and cannellini beans, drained", "2 medium potatoes, small dice", "1 beef stock cube in 250ml hot water", "2 tsp paprika (preferably smoked), 1 tsp oregano, 1 tsp cumin", "About ½ sachet Mexican seasoning, to taste", "1–2 tsp Worcestershire sauce", "1 tbsp honey", "Grated cheese, black pepper, optional olive oil"],
+    method: ["Brown chorizo in a large pot for 3–4 minutes; add oil only if needed.", "Add onion, leek and peppers. Cook for 5–7 minutes, then add fresh tomatoes.", "Stir in tomato paste, paprika, oregano, cumin and Mexican seasoning; cook for 1–2 minutes.", "Add tinned tomatoes, potatoes, beef stock and Worcestershire sauce. Cover and simmer 15–20 minutes until potatoes soften.", "Stir in drained beans and simmer 10 minutes more, uncovered if needed to thicken.", "Stir in the honey for the final 2 minutes. Taste before adding salt and serve with grated cheese."] },
+  { id: "tuna-chickpea-salad", no: 2, title: "Mediterranean Tuna & Chickpea Salad", serves: "2 servings", time: "15 min", mins: 15, tags: ["Salads", "Quick"], img: "img/tuna-chickpea-salad.jpg",
+    ingredients: ["1 tin tuna, drained", "1 tin chickpeas, drained and rinsed", "2–3 fresh tomatoes, chopped", "½ onion, finely diced", "1 pepper, diced", "1 ripe avocado, diced", "2 tbsp olive oil", "1 tbsp lemon juice or vinegar", "Salt and freshly ground pepper", "Optional: parsley, olives, feta or oregano"],
+    method: ["Rinse chickpeas and place in a large bowl.", "Add tomatoes, onion and pepper; flake in tuna.", "Whisk olive oil with lemon juice or vinegar, salt and pepper.", "Toss the salad with dressing and any optional extras.", "Fold in avocado immediately before serving."] },
+  { id: "creamy-chicken-stew", no: 3, title: "Creamy Chicken Stew", serves: "4 servings", time: "40–50 min", mins: 50, tags: ["Chicken", "One pot"], img: "img/creamy-chicken-stew.jpg",
+    ingredients: ["500–600g chicken breast, large pieces", "1 large leek, cleaned and sliced", "1 onion, diced", "2 carrots, sliced; 2 celery stalks, chopped", "400–500g potatoes, cubed", "500ml chicken stock", "100–150ml cream", "1 tsp dried thyme", "1 tbsp olive oil or butter; pepper", "Optional: 1 tbsp flour and parsley"],
+    method: ["Lightly brown chicken breast in oil or butter for 2–3 minutes; remove.", "Soften leek, onion, carrots and celery for 5–7 minutes. Stir in flour if using.", "Add potatoes, thyme and stock; simmer 15–20 minutes until potatoes are nearly tender.", "Return chicken and juices; simmer gently for 7–10 minutes, until chicken reaches 74°C internally.", "Turn down heat, stir in cream, warm gently and season."] },
+  { id: "banana-muffins", no: 4, title: "Banana Muffins", serves: "Makes about 12", time: "30–40 min", mins: 40, tags: ["Baking & breakfast"], img: null,
+    ingredients: ["190g plain or wholemeal flour", "1 tsp baking powder; 1 tsp baking soda", "½ tsp salt; 1 tsp cinnamon; ¼ tsp nutmeg", "3 large ripe bananas, mashed", "85g unsalted butter, melted (or coconut oil)", "135g brown sugar", "1 large egg", "1 tsp vanilla extract", "30ml milk", "Optional: chopped walnuts, pecans or chocolate chips"],
+    method: ["Heat oven to 180°C (160°C fan); line a 12-hole muffin tin.", "Whisk flour, baking powder, baking soda, salt, cinnamon and nutmeg.", "Mix bananas, melted butter, sugar, egg, vanilla and milk in another bowl.", "Fold wet into dry just until combined; add optional nuts or chocolate.", "Fill cases and bake around 18–22 minutes until a skewer comes out clean."] },
+  { id: "beef-broccoli", no: 5, title: "Beef & Broccoli", serves: "4 servings", time: "25–30 min", mins: 30, tags: ["Beef & pork", "Quick"], img: "img/beef-broccoli.jpg",
+    ingredients: ["Lean beef, thinly sliced (about 500g)", "2 tbsp Worcestershire sauce", "1 tbsp fish sauce", "1 tbsp dark soy sauce; 1 tbsp light soy sauce", "Chilli pepper and black pepper", "Crushed garlic", "1 tbsp mirin", "A generous knob of butter", "1 head broccoli", "1 tbsp oyster sauce for broccoli"],
+    method: ["Stir-fry beef with Worcestershire, fish sauce, both soy sauces, chilli, pepper, garlic and mirin.", "Let sauce bubble and reduce; stir in butter at the end.", "Quickly blanch broccoli, then drain.", "Fry broccoli briefly with garlic and oyster sauce.", "Serve beef and broccoli together."] },
+  { id: "beef-stew", no: 6, title: "Beef Stew", serves: "4–6 servings", time: "About 2½ hours", mins: 150, tags: ["Beef & pork", "One pot"], img: "img/beef-stew.jpg",
+    ingredients: ["Diced stewing beef (about 800g–1kg)", "2 large onions, finely chopped", "6 carrots, sliced", "Butter; 4 garlic cloves, minced", "2 cups beef broth", "2 tbsp tomato paste", "450g mushrooms, quartered", "¼ cup plain flour; 3 tbsp olive oil", "Bouquet garni: thyme, bay leaves, parsley", "Salt and pepper", "Mashed potatoes or roasted diced potatoes to serve"],
+    method: ["Brown seasoned beef in batches in hot olive oil; remove.", "Add butter, onion, carrots and garlic to the pot; sweat until softened.", "Sprinkle flour over vegetables and stir, scraping the base.", "Return beef; add broth, tomato paste and bouquet garni. Bring to a simmer.", "Cover and cook gently for about 2 hours until tender.", "Sauté mushrooms separately until golden; add for the last 30 minutes.", "Serve with garlic-butter mash, or add roasted potato cubes near the end."] },
+  { id: "chicken-louisiana", no: 7, title: "Chicken Louisiana", serves: "4–6 servings", time: "About 45 min", mins: 45, tags: ["Chicken", "Oven bake"], img: "img/chicken-louisiana.jpg",
+    ingredients: ["Roast chicken or oven-roasted chicken fillets", "Salt, pepper and Italian herbs", "1 green pepper", "Button mushrooms", "1 onion", "Jarred smoked roasted red peppers", "Flaked almonds", "Mayonnaise, enough to bind", "Squeeze of lemon juice", "Grated cheddar", "Crushed crisps for topping"],
+    method: ["Roast or pan-cook chicken seasoned with salt, pepper and Italian herbs; dice when cooked.", "Chop green pepper, mushrooms, onion and roasted red peppers.", "Toast flaked almonds until golden.", "Combine chicken, vegetables and almonds with mayonnaise and lemon juice.", "Transfer to a casserole dish; top with grated cheddar and crushed crisps.", "Bake at about 180°C until hot throughout and golden, approximately 20–25 minutes."] },
+  { id: "chicken-mushroom-pasta", no: 8, title: "Chicken Mushroom Pasta", serves: "4 servings", time: "30–40 min", mins: 40, tags: ["Chicken", "Pasta"], img: "img/chicken-mushroom-pasta.jpg",
+    ingredients: ["Chicken breasts", "Oil, salt, pepper and chopped basil", "Onion and garlic", "Butter", "White wine", "Chopped mushrooms", "Chicken broth and milk", "Grated cheese", "Pasta"],
+    method: ["Pan-fry seasoned chicken breasts with chopped basil until fully cooked; set aside.", "Soften finely chopped onion and garlic in butter.", "Add white wine and simmer briefly.", "Add mushrooms, chicken broth and milk; simmer and stir in grated cheese.", "Cook pasta; slice chicken and combine everything once sauce thickens."] },
+  { id: "chilli-garlic-basil-pasta", no: 9, title: "Chilli Garlic Basil Pasta", serves: "4 servings", time: "25 min", mins: 25, tags: ["Pasta", "Vegetarian", "Quick"], img: "img/chilli-garlic-basil-pasta.jpg",
+    ingredients: ["Pasta", "Garlic and fresh chilli", "Fresh basil, leaves and stalks separated", "10–12 cherry tomatoes", "Olive oil", "1 tin chopped tomatoes", "Salt and pepper", "Optional pinch of sugar"],
+    method: ["Chop garlic, chilli and basil stalks; tear basil leaves.", "Cook cherry tomatoes in olive oil until soft enough to squash.", "Cook pasta al dente in salted water.", "Fry garlic, chilli and basil stalks in olive oil, then add cherry tomatoes and tinned tomatoes.", "Season and add a pinch of sugar only if needed.", "Toss with pasta and finish with basil leaves."] },
+  { id: "mexican-chicken-salad", no: 10, title: "Mexican Chicken Salad", serves: "4 servings", time: "35–45 min", mins: 45, tags: ["Chicken", "Salads"], img: "img/mexican-chicken-salad.jpg",
+    ingredients: ["Chicken breasts", "Cajun seasoning", "Sweetcorn", "Cooked rice", "Bell pepper and cherry tomatoes", "Onion and spring onions", "Kidney beans and chickpeas", "Fresh coriander", "Fresh lemon juice", "Cheddar cheese", "Optional avocado", "Salt, pepper and olive oil"],
+    method: ["Season chicken with Cajun spices; sear in a skillet then finish in the oven until cooked through (74°C).", "In the same pan, briefly char sweetcorn for about 2 minutes.", "Cook rice if not already prepared; cool slightly.", "Chop vegetables, spring onions and coriander; drain beans.", "Combine rice, sliced chicken, corn, vegetables, beans, lemon juice and seasoning.", "Top with cheese and optional avocado; serve warm or cold."] },
+  { id: "mushroom-pasta", no: 11, title: "Mushroom Pasta", serves: "4 servings", time: "25–30 min", mins: 30, tags: ["Pasta", "Quick"], img: "img/mushroom-pasta.jpg",
+    ingredients: ["Shallots and garlic", "Butter", "Plenty of mushrooms", "Salt and pepper", "Splash of white wine", "About ½ jug chicken stock", "Grated white cheddar", "Spring onions", "Pasta"],
+    method: ["Sauté shallots and garlic in butter.", "Add plenty of mushrooms and more butter; season.", "Pour in white wine and simmer.", "Add chicken stock and grated cheddar, reducing to a creamy sauce.", "Cook pasta, toss with sauce and finish with chopped spring onions."] },
+  { id: "pancakes", no: 12, title: "Pancakes", serves: "About 6–8 thin pancakes", time: "20 min", mins: 20, tags: ["Baking & breakfast", "Vegetarian", "Quick"], img: "img/pancakes.jpg",
+    ingredients: ["1⅓ cups plain flour", "Pinch of salt", "1 egg", "300ml milk", "Melted butter"],
+    method: ["Whisk flour and salt together.", "Beat in egg and gradually add milk to make a smooth pourable batter.", "Stir in a little melted butter; rest for 10 minutes if time allows.", "Heat a lightly buttered nonstick pan and add a thin layer of batter.", "Cook until set and golden, flip, and cook the other side."] },
+];
+const FILTERS = ["All", "Favourites", "Quick", "Chicken", "Beef & pork", "Pasta", "Salads", "Vegetarian", "One pot", "Baking & breakfast"];
+
+/* ---------- storage (per-browser, optional) ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("lwsm:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("lwsm:" + k, JSON.stringify(v)); } catch {} },
+};
+let favs = new Set(store.get("favs", []));
+let shopping = store.get("shopping", []);           // [{rid, text, done}]
+let progress = store.get("progress", {});           // {rid: {ing:[i], steps:[i]}}
+let filter = "All", query = "";
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const byId = id => RECIPES.find(r => r.id === id);
+const pad = n => String(n).padStart(2, "0");
+const isOptional = t => /^optional/i.test(t);
+
+function photo(r) {
+  return r.img ? `<img src="${r.img}" alt="${esc(r.title)}" loading="lazy">`
+               : `<div class="art" role="img" aria-label="${esc(r.title)}"><span>${esc(r.title)}</span></div>`;
+}
+const heart = filled => `<svg width="16" height="16" viewBox="0 0 24 24" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>`;
+
+/* ---------- home ---------- */
+function renderHome() {
+  document.title = "Look What Steve Made!";
+  $("#app").innerHTML = `
+    <section class="cover">
+      <img src="img/cover.jpg" alt="A pot of chorizo chilli topped with sour cream and coriander">
+      <div class="cover-text"><h1>Look What Steve Made!</h1><p>Recipes worth making again · Volume 01</p></div>
+    </section>
+    <div class="tools">
+      <label class="search"><span hidden>Search recipes</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search a dish or ingredient — try “mushrooms”" value="${esc(query)}" autocomplete="off">
+      </label>
+    </div>
+    <div class="chips" role="group" aria-label="Filter recipes">
+      ${FILTERS.map(f => `<button class="chip" type="button" data-f="${esc(f)}" aria-pressed="${f === filter}">${esc(f)}</button>`).join("")}
+    </div>
+    <div style="height:18px"></div>
+    <div class="grid" id="grid"></div>`;
+  $("#q").addEventListener("input", e => { query = e.target.value; renderGrid(); });
+  document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+    filter = b.dataset.f; document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c === b)); renderGrid();
+  }));
+  renderGrid();
+}
+function renderGrid() {
+  const q = query.trim().toLowerCase();
+  const list = RECIPES.filter(r =>
+    (filter === "All" || (filter === "Favourites" ? favs.has(r.id) : r.tags.includes(filter))) &&
+    (!q || (r.title + " " + r.ingredients.join(" ")).toLowerCase().includes(q)));
+  $("#grid").innerHTML = list.length ? list.map(r => `
+    <button class="card" type="button" data-id="${r.id}">
+      <div class="thumb">${photo(r)}<span class="no mono">${pad(r.no)}</span>${favs.has(r.id) ? `<span class="fav-dot">${heart(true)}</span>` : ""}</div>
+      <div class="card-body"><h3>${esc(r.title)}</h3><div class="meta">${esc(r.serves)} · ${esc(r.time)}</div></div>
+    </button>`).join("")
+    : `<p class="empty">${filter === "Favourites" && !q ? "No favourites yet. Open a recipe and tap Save to keep it here." : "No recipes match that. Try another word or filter."}</p>`;
+  document.querySelectorAll(".card").forEach(c => c.addEventListener("click", () => { location.hash = c.dataset.id; }));
+}
+
+/* ---------- recipe ---------- */
+function linkify(text, ri, si) {
+  let html = esc(text).replace(/(\d+°C(?: \(\d+°C fan\))?)/g, '<span class="temp">$1</span>');
+  const t = findTimer(text);
+  if (t) html += `<br><span class="timer-btn" role="button" tabindex="0" data-timer="${t.mins}" data-label="${esc(byId(ri).title.split(" ").slice(0,3).join(" "))} · step ${si + 1}">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>Start ${t.label} timer</span>`;
+  return html;
+}
+function findTimer(text) {
+  const h = text.match(/about (\d+) hours?/i);
+  if (h) return { mins: +h[1] * 60, label: `${h[1]} hr` };
+  const m = text.match(/(?:(\d+)–)?(\d+) minutes?/i);
+  if (m) return { mins: +m[2], label: `${m[2]} min` };
+  return null;
+}
+function renderRecipe(r) {
+  document.title = r.title + " · Look What Steve Made!";
+  const p = progress[r.id] || { ing: [], steps: [] };
+  $("#app").innerHTML = `
+    <div class="back"><a class="pill-btn" href="#">← All recipes</a></div>
+    <section class="r-head">
+      <div class="r-photo">${photo(r)}</div>
+      <div class="r-title">
+        <div class="eyebrow mono">Recipe ${pad(r.no)} of ${RECIPES.length}</div>
+        <h1>${esc(r.title)}</h1>
+        <div class="facts"><span class="fact">${esc(r.serves)}</span><span class="fact">${esc(r.time)}</span>${r.tags.map(t => `<span class="fact" style="background:transparent;border:1px solid var(--line);color:var(--muted)">${esc(t)}</span>`).join("")}</div>
+        <div class="actions">
+          <button class="pill-btn primary" id="cookBtn" type="button">Start cooking</button>
+          <button class="pill-btn" id="favBtn" type="button" aria-pressed="${favs.has(r.id)}">${heart(favs.has(r.id))} ${favs.has(r.id) ? "Saved" : "Save"}</button>
+          <button class="pill-btn" id="addList" type="button">+ Add to shopping list</button>
+        </div>
+      </div>
+    </section>
+    <section class="sheet">
+      <div class="ing-box">
+        <div class="sec-h"><h2>Ingredients</h2><button class="link-btn" id="resetBtn" type="button">Reset ticks</button></div>
+        <ul class="ing">${r.ingredients.map((t, i) => `<li><label><input type="checkbox" id="ing-${r.id}-${i}" data-i="${i}" ${p.ing.includes(i) ? "checked" : ""}><span>${esc(t.replace(/^Optional:?\s*/i, ""))}${isOptional(t) ? '<span class="opt">optional</span>' : ""}</span></label></li>`).join("")}</ul>
+        <p class="hint">Tick things off as you gather them.</p>
+      </div>
+      <div>
+        <div class="sec-h"><h2>Method</h2></div>
+        <ol class="steps">${r.method.map((t, i) => `<li><div class="step ${p.steps.includes(i) ? "done" : ""}" data-i="${i}" role="button" tabindex="0" aria-pressed="${p.steps.includes(i)}"><span class="n">${i + 1}</span><span class="txt">${linkify(t, r.id, i)}</span></div></li>`).join("")}</ol>
+        <p class="hint">Tap a step to mark it done.</p>
+      </div>
+    </section>`;
+  const save = () => { progress[r.id] = p; store.set("progress", progress); };
+  document.querySelectorAll(".ing input").forEach(cb => cb.addEventListener("change", () => {
+    const i = +cb.dataset.i; p.ing = cb.checked ? [...p.ing, i] : p.ing.filter(x => x !== i); save();
+  }));
+  document.querySelectorAll(".step").forEach(el => {
+    const toggle = e => {
+      if (e.target.closest(".timer-btn")) return;
+      const i = +el.dataset.i, on = !p.steps.includes(i);
+      p.steps = on ? [...p.steps, i] : p.steps.filter(x => x !== i);
+      el.classList.toggle("done", on); el.setAttribute("aria-pressed", on); save();
+    };
+    el.addEventListener("click", toggle);
+    el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(e); } });
+  });
+  bindTimerButtons($("#app"));
+  $("#resetBtn").addEventListener("click", () => { progress[r.id] = { ing: [], steps: [] }; store.set("progress", progress); renderRecipe(r); });
+  $("#favBtn").addEventListener("click", () => {
+    favs.has(r.id) ? favs.delete(r.id) : favs.add(r.id); store.set("favs", [...favs]); renderRecipe(r);
+  });
+  $("#addList").addEventListener("click", () => {
+    const have = new Set(shopping.filter(s => s.rid === r.id).map(s => s.text));
+    const add = r.ingredients.filter(t => !isOptional(t) && !have.has(t)).map(text => ({ rid: r.id, text, done: false }));
+    shopping = [...shopping, ...add]; store.set("shopping", shopping); updateCount();
+    toast(add.length ? `Added ${add.length} items to your shopping list` : "Already on your shopping list");
+  });
+  $("#cookBtn").addEventListener("click", () => openCook(r));
+  window.scrollTo(0, 0);
+}
+function bindTimerButtons(root) {
+  root.querySelectorAll("[data-timer]").forEach(b => {
+    const go = e => { e.stopPropagation(); startTimer(+b.dataset.timer, b.dataset.label); };
+    b.addEventListener("click", go);
+    b.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(e); } });
+  });
+}
+
+/* ---------- cook mode ---------- */
+let wakeLock = null;
+async function openCook(r) {
+  let i = 0;
+  const el = document.createElement("div");
+  el.className = "cook"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Cook mode: " + r.title);
+  document.body.appendChild(el); document.body.style.overflow = "hidden";
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch { wakeLock = null; }
+  const draw = () => {
+    el.innerHTML = `
+      <div class="cook-top"><span class="t">${esc(r.title)}</span><button class="pill-btn" id="cookClose" type="button">Close</button></div>
+      <div class="progress">${r.method.map((_, k) => `<i class="${k <= i ? "on" : ""}"></i>`).join("")}</div>
+      <div class="cook-main">
+        <div class="eyebrow mono">Step ${i + 1} of ${r.method.length}${wakeLock ? " · screen stays on" : ""}</div>
+        <p>${linkify(r.method[i], r.id, i)}</p>
+      </div>
+      <div class="cook-nav">
+        <button type="button" id="prev" ${i === 0 ? "disabled" : ""}>Back</button>
+        <button type="button" class="next" id="next">${i === r.method.length - 1 ? "Finished" : "Next step"}</button>
+      </div>`;
+    bindTimerButtons(el);
+    $("#cookClose", el).onclick = close;
+    $("#prev", el).onclick = () => { i--; draw(); };
+    $("#next", el).onclick = () => {
+      const p = progress[r.id] || { ing: [], steps: [] };
+      if (!p.steps.includes(i)) p.steps.push(i); progress[r.id] = p; store.set("progress", progress);
+      if (i === r.method.length - 1) { close(); toast("Look what you made!"); } else { i++; draw(); }
+    };
+    $("#next", el).focus();
+  };
+  const key = e => { if (e.key === "Escape") close(); if (e.key === "ArrowRight" && i < r.method.length - 1) { i++; draw(); } if (e.key === "ArrowLeft" && i > 0) { i--; draw(); } };
+  function close() {
+    document.removeEventListener("keydown", key); el.remove(); document.body.style.overflow = "";
+    try { wakeLock?.release(); } catch {} wakeLock = null; renderRecipe(r);
+  }
+  document.addEventListener("keydown", key);
+  draw();
+}
+
+/* ---------- timers ---------- */
+let timers = [], audioCtx = null, tid = 0;
+function startTimer(mins, label) {
+  try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch {}
+  timers.push({ id: ++tid, label, end: Date.now() + mins * 60000, ring: false });
+  toast(`${mins >= 60 ? mins / 60 + " hr" : mins + " min"} timer started`); drawTimers();
+}
+function beep() {
+  if (!audioCtx) return;
+  try {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = 880; o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(.0001, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(.3, audioCtx.currentTime + .02);
+    g.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime + .4); o.start(); o.stop(audioCtx.currentTime + .45);
+  } catch {}
+}
+function drawTimers() {
+  const box = $("#timers");
+  box.innerHTML = timers.map(t => {
+    const left = Math.max(0, Math.round((t.end - Date.now()) / 1000));
+    const h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), s = left % 60;
+    return `<div class="timer ${t.ring ? "ring" : ""}"><span class="lbl">${esc(t.label)}</span><span class="clock">${t.ring ? "Done!" : (h ? h + ":" + pad(m) : m) + ":" + pad(s)}</span><button type="button" data-stop="${t.id}">${t.ring ? "OK" : "Stop"}</button></div>`;
+  }).join("");
+  box.querySelectorAll("[data-stop]").forEach(b => b.onclick = () => { timers = timers.filter(t => t.id !== +b.dataset.stop); drawTimers(); });
+}
+setInterval(() => {
+  if (!timers.length) return;
+  timers.forEach(t => { if (!t.ring && Date.now() >= t.end) t.ring = true; if (t.ring) beep(); });
+  drawTimers();
+}, 1000);
+
+/* ---------- shopping list ---------- */
+function updateCount() {
+  const n = shopping.filter(s => !s.done).length, c = $("#listCount");
+  c.textContent = n; c.hidden = n === 0;
+}
+function openList() {
+  const bg = document.createElement("div"); bg.className = "drawer-bg";
+  const d = document.createElement("aside"); d.className = "drawer"; d.setAttribute("role", "dialog"); d.setAttribute("aria-label", "Shopping list");
+  document.body.append(bg, d);
+  const close = () => { bg.remove(); d.remove(); document.removeEventListener("keydown", esc_); };
+  const esc_ = e => { if (e.key === "Escape") close(); };
+  document.addEventListener("keydown", esc_);
+  bg.onclick = close;
+  const draw = () => {
+    const groups = [...new Set(shopping.map(s => s.rid))];
+    d.innerHTML = `
+      <div class="sec-h"><h2>Shopping list</h2><button class="pill-btn" id="lc" type="button">Close</button></div>
+      <div class="drawer-body">${groups.length ? groups.map(rid => `
+        <h3>${esc(byId(rid)?.title || "")}</h3>
+        <ul class="ing">${shopping.map((s, k) => s.rid === rid ? `<li><label><input type="checkbox" id="shop-${k}" data-k="${k}" ${s.done ? "checked" : ""}><span>${esc(s.text)}</span></label></li>` : "").join("")}</ul>`).join("")
+        : `<p class="empty">Your list is empty. Open a recipe and tap “Add to shopping list”.</p>`}</div>
+      <div class="drawer-foot">
+        <button class="pill-btn primary" id="copyList" type="button" ${shopping.length ? "" : "disabled"}>Copy list</button>
+        <button class="pill-btn" id="clearDone" type="button" ${shopping.some(s => s.done) ? "" : "disabled"}>Remove ticked</button>
+        <button class="pill-btn" id="clearAll" type="button" ${shopping.length ? "" : "disabled"}>Clear all</button>
+      </div>`;
+    $("#lc", d).onclick = close;
+    d.querySelectorAll("input[data-k]").forEach(cb => cb.onchange = () => { shopping[+cb.dataset.k].done = cb.checked; store.set("shopping", shopping); updateCount(); });
+    $("#clearDone", d).onclick = () => { shopping = shopping.filter(s => !s.done); store.set("shopping", shopping); updateCount(); draw(); };
+    let armed = false;
+    $("#clearAll", d).onclick = e => {
+      if (!armed) { armed = true; e.currentTarget.textContent = "Tap again to clear"; return; }
+      shopping = []; store.set("shopping", shopping); updateCount(); draw();
+    };
+    $("#copyList", d).onclick = () => {
+      const text = groups.map(rid => byId(rid).title + "\n" + shopping.filter(s => s.rid === rid && !s.done).map(s => "- " + s.text).join("\n")).join("\n\n");
+      navigator.clipboard.writeText(text).then(() => toast("Shopping list copied"), () => toast("Couldn't copy here. Select the items and copy them by hand."));
+    };
+  };
+  draw(); $("#lc", d).focus();
+}
+$("#listBtn").addEventListener("click", openList);
+
+/* ---------- toast + routing ---------- */
+let toastT;
+function toast(msg) {
+  document.querySelector(".toast")?.remove();
+  const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = msg;
+  document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2600);
+}
+function route() {
+  const r = byId(location.hash.slice(1));
+  r ? renderRecipe(r) : renderHome();
+}
+window.addEventListener("hashchange", route);
+updateCount(); route();
+</script>
+</body>
+</html>
