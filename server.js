@@ -771,6 +771,54 @@ async function ensureMonthlyReminder() {
   } catch (e) { console.error("Monthly reminder failed:", e.message); }
 }
 
+// ── Weekly Monday task: consignor markdown review ─────────────────
+const MARKDOWN_TASK_TITLE = "Check consignor-owned stock for markdowns";
+const MARKDOWN_ASSIGNEES = (process.env.MARKDOWN_ASSIGNEES || "Zoe,Manu,Sabina")
+  .split(",").map((s) => s.trim()).filter(Boolean);
+function isMondayDublin(d = new Date()) {
+  const dt = new Date(dublinDate(d) + "T12:00:00Z");
+  return dt.getUTCDay() === 1; // Monday
+}
+function dublinWeekStart(d = new Date()) {
+  const dt = new Date(dublinDate(d) + "T12:00:00Z");
+  const diff = (dt.getUTCDay() + 6) % 7; // days since Monday
+  dt.setUTCDate(dt.getUTCDate() - diff);
+  return dt.toISOString().slice(0, 10); // this week's Monday (YYYY-MM-DD)
+}
+async function ensureWeeklyMarkdownTasks() {
+  try {
+    if (!isMondayDublin()) return;
+    const weekStart = dublinWeekStart();
+    const tasks = await taskStore.list();
+    let staff = [];
+    try { staff = await staffStore.list(); } catch {}
+    // Resolve each name to the exact staff name on the board (handles Emmanuel ↔ Manu).
+    const resolve = (name) => {
+      const lo = name.toLowerCase();
+      let m = staff.find((s) => s.toLowerCase() === lo);
+      if (m) return m;
+      if (lo.startsWith("emman") || lo === "manu") {
+        m = staff.find((s) => s.toLowerCase().startsWith("manu") || s.toLowerCase().startsWith("emman"));
+        if (m) return m;
+      }
+      return name;
+    };
+    for (const raw of MARKDOWN_ASSIGNEES) {
+      const assignee = resolve(raw);
+      const exists = tasks.some((t) =>
+        String(t.assignee || "").toLowerCase() === assignee.toLowerCase() &&
+        String(t.title || "").toLowerCase().includes("markdown") &&
+        String(t.created_at || "").slice(0, 10) >= weekStart);
+      if (!exists) {
+        await taskStore.create(
+          { title: MARKDOWN_TASK_TITLE, assignee, priority: "med", status: "todo", due_date: dublinDate() },
+          "Reminder"
+        );
+      }
+    }
+  } catch (e) { console.error("Weekly markdown tasks failed:", e.message); }
+}
+
 // A few sample tasks so the local board isn't empty while testing.
 function seedTasks() {
   const now = new Date().toISOString();
@@ -1560,6 +1608,7 @@ app.get("/api/serpapi-quota", requireCode, async (req, res) => {
 // ── Tasks API ─────────────────────────────────────────────────────
 app.get("/api/tasks", requireCode, async (req, res) => {
   try {
+    await ensureWeeklyMarkdownTasks();
     res.json({ tasks: activeToday(await taskStore.list()), staff: await staffStore.list() });
   } catch (e) {
     res.status(500).json({ error: e.message });
