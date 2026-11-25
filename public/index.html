@@ -529,6 +529,13 @@
   .wl-search { width: 100%; font-family: "Jost"; font-size: 1rem; color: var(--espresso); border: 1px solid var(--border); background: var(--white); padding: 14px 16px; margin-bottom: 12px; }
   .wl-search:focus { outline: none; border-color: var(--bronze); }
   .wl-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .wl-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .wl-filters select { max-width: 220px; }
+  .wl-who { background: none; border: 0; padding: 0; font: inherit; color: var(--espresso); cursor: pointer; text-decoration: underline; text-decoration-color: var(--bronze-pale); text-underline-offset: 3px; }
+  .wl-who:hover { color: var(--bronze-deep); }
+  .wl-clienthead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; background: var(--white); border: 1px solid var(--border); border-left: 2px solid var(--bronze); padding: 12px 14px; margin-bottom: 12px; font-size: 0.86rem; color: var(--stone); }
+  .wl-clienthead b { font-family: "Cormorant Garamond", serif; font-size: 1.35rem; font-weight: 400; color: var(--espresso); }
+  .wl-clienthead a { color: var(--bronze-deep); }
   .wl-bar select { font-family: "Jost"; font-size: 0.8rem; border: 1px solid var(--border); background: var(--white); padding: 7px 10px; color: var(--espresso); }
   .wl-summary { font-size: 0.82rem; color: var(--bronze-deep); margin: 0 0 12px; min-height: 1.1em; }
   .wl-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1106,8 +1113,12 @@
         <button class="seg-btn" data-ws="closed" type="button">Closed</button>
         <button class="seg-btn" data-ws="all" type="button">All</button>
       </div>
+      <div class="wl-filters">
+      <select id="wlClientFilter" aria-label="Client"><option value="">All clients</option></select>
       <select id="wlCatFilter" aria-label="Category"><option value="">All categories</option><option>Handbag</option><option>Jewellery</option><option>Watch</option><option>Small leather goods</option><option>Shoes</option><option>Clothing</option><option>Accessories</option><option>Other</option></select>
+      </div>
     </div>
+    <div class="wl-clienthead" id="wlClientHead" hidden></div>
     <div class="wl-summary" id="wlSummary"></div>
     <div class="wl-list" id="wlList"></div>
   </div>
@@ -3177,6 +3188,38 @@
   // ── Client wishlists ──────────────────────────────────────────
   let wlItems = [];
   let wlStatus = "open";
+  let wlClient = ""; // client key when viewing one customer's wishlist
+  // One key per customer: their phone number (last 9 digits, so 087… and +353 87… match),
+  // falling back to their name when there's no usable phone.
+  function wlClientKey(w) {
+    const d = String(w.phone || "").replace(/\D/g, "");
+    return d.length >= 7 ? "p:" + d.slice(-9) : "n:" + wlNorm(w.name);
+  }
+  function wlSetStatus(st) {
+    wlStatus = st;
+    document.querySelectorAll("#wlStatusSeg .seg-btn").forEach((x) => x.classList.toggle("active", x.dataset.ws === st));
+  }
+  function wlShowClient(key) {
+    wlClient = key || "";
+    if (wlClient) wlSetStatus("all"); // a customer's whole list, matched/closed included
+    renderWishlists();
+    if (wlClient) document.getElementById("wlClientHead").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  function wlFillClientFilter() {
+    const sel = document.getElementById("wlClientFilter");
+    const byKey = new Map();
+    wlItems.forEach((w) => {
+      const k = wlClientKey(w);
+      const c = byKey.get(k) || { name: w.name || "(no name)", open: 0, all: 0 };
+      c.all++; if (w.status === "open") c.open++;
+      byKey.set(k, c);
+    });
+    const clients = [...byKey.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, "en", { sensitivity: "base" }));
+    if (wlClient && !byKey.has(wlClient)) wlClient = "";
+    sel.innerHTML = '<option value="">All clients (' + clients.length + ")</option>" + clients.map(([k, c]) =>
+      '<option value="' + escapeHtml(k) + '"' + (k === wlClient ? " selected" : "") + ">" +
+      escapeHtml(c.name) + " (" + c.all + ")</option>").join("");
+  }
   let wlWired = false;
   // Shorthand staff and clients use → the full brand name, so "LV" finds "Louis Vuitton".
   const WL_ALIASES = {
@@ -3227,9 +3270,9 @@
       wlWired = true;
       document.getElementById("wlSearch").oninput = renderWishlists;
       document.getElementById("wlCatFilter").onchange = renderWishlists;
+      document.getElementById("wlClientFilter").onchange = (e) => wlShowClient(e.target.value);
       document.querySelectorAll("#wlStatusSeg .seg-btn").forEach((b) => (b.onclick = () => {
-        wlStatus = b.dataset.ws;
-        document.querySelectorAll("#wlStatusSeg .seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+        wlSetStatus(b.dataset.ws);
         renderWishlists();
       }));
       document.getElementById("wlAddBtn").onclick = () => {
@@ -3261,7 +3304,25 @@
     const q = document.getElementById("wlSearch").value.trim();
     const tokens = wlNorm(q).split(" ").filter(Boolean);
     const cat = document.getElementById("wlCatFilter").value;
+    wlFillClientFilter();
+    const head = document.getElementById("wlClientHead");
+    if (wlClient) {
+      const mine = wlItems.filter((w) => wlClientKey(w) === wlClient);
+      const c = mine[0] || {};
+      const open = mine.filter((w) => w.status === "open").length;
+      const wa = String(c.phone || "").replace(/[^\d+]/g, "").replace(/^\+/, "").replace(/^0/, "353");
+      head.innerHTML = "<b>" + escapeHtml(c.name || "") + "</b><span>" + mine.length + " wish" + (mine.length === 1 ? "" : "es") + " · " + open + " open</span>" +
+        (c.phone ? '<a href="tel:' + escapeHtml(c.phone.replace(/\s/g, "")) + '">' + escapeHtml(c.phone) + "</a>" : "") +
+        (wa ? '<a href="https://wa.me/' + escapeHtml(wa) + '" target="_blank" rel="noopener">WhatsApp</a>' : "") +
+        (c.email ? '<a href="mailto:' + escapeHtml(c.email) + '">' + escapeHtml(c.email) + "</a>" : "") +
+        '<button class="linkbtn" id="wlClientClear" type="button">× All clients</button>';
+      head.hidden = false;
+      document.getElementById("wlClientClear").onclick = () => wlShowClient("");
+    } else {
+      head.hidden = true;
+    }
     const rows = wlItems.filter((w) =>
+      (!wlClient || wlClientKey(w) === wlClient) &&
       (wlStatus === "all" || w.status === wlStatus) &&
       (!cat || w.category === cat) &&
       (!tokens.length || wlMatches(w, tokens)));
@@ -3271,6 +3332,8 @@
       summary.textContent = rows.length
         ? rows.length + " wish" + (rows.length === 1 ? "" : "es") + " from " + people + " client" + (people === 1 ? "" : "s") + " match “" + q + "”"
         : "No client has “" + q + "” on their wishlist" + (wlStatus === "all" ? "." : " (" + wlStatus + " only — try All).");
+    } else if (wlClient) {
+      summary.textContent = rows.length + " shown" + (wlStatus === "all" ? "" : " (" + wlStatus + ")");
     } else {
       summary.textContent = openCount + " open wish" + (openCount === 1 ? "" : "es") + " · " + wlItems.length + " in total";
     }
@@ -3295,7 +3358,7 @@
           '<div class="wl-top"><div class="wl-piece">' + piece + "</div>" +
           '<span class="wl-status ' + escapeHtml(w.status) + '">' + escapeHtml(w.status) + "</span></div>" +
           '<div class="wl-meta">' + meta + "</div>" +
-          '<div class="wl-client"><span>' + wlHighlight(w.name, tokens) + "</span>" +
+          '<div class="wl-client"><button class="wl-who" type="button" title="See all of this client\'s wishes" data-wl-client="' + escapeHtml(wlClientKey(w)) + '">' + wlHighlight(w.name, tokens) + "</button>" +
             (w.phone ? '<a href="tel:' + escapeHtml(w.phone.replace(/\s/g, "")) + '">' + escapeHtml(w.phone) + "</a>" : "") +
             (wa ? '<a href="https://wa.me/' + escapeHtml(wa) + '" target="_blank" rel="noopener">WhatsApp</a>' : "") +
             (w.email ? '<a href="mailto:' + escapeHtml(w.email) + '">' + escapeHtml(w.email) + "</a>" : "") +
@@ -3305,6 +3368,7 @@
         "</div></div>";
     }).join("");
     list.querySelectorAll("[data-wl-photo]").forEach((img) => (img.onclick = () => openLightbox(img.src)));
+    list.querySelectorAll("[data-wl-client]").forEach((b) => (b.onclick = () => wlShowClient(b.dataset.wlClient)));
     list.querySelectorAll("[data-wl-set]").forEach((b) => (b.onclick = () => patchWish(b.dataset.id, { status: b.dataset.wlSet })));
     list.querySelectorAll("[data-wl-note]").forEach((b) => (b.onclick = () => {
       const w = wlItems.find((x) => x.id === b.dataset.wlNote);
