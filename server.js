@@ -839,13 +839,19 @@ function wishRateLimited(ip) {
 }
 function wishCors(req, res) {
   const origin = (req.get("origin") || "").replace(/\/$/, "");
-  const allowed = WISH_ORIGINS.includes(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-  if (allowed) {
+  const allowed =
+    WISH_ORIGINS.includes(origin) ||
+    /^https:\/\/[a-z0-9-]+\.shopifypreview\.com$/.test(origin) || // Shopify theme preview / share links
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  // Always send CORS headers so the browser can read our answer (incl. a refusal) instead of
+  // reporting a bare network error.
+  if (origin) {
     res.set("Access-Control-Allow-Origin", origin);
     res.set("Vary", "Origin");
     res.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
     res.set("Access-Control-Allow-Headers", "Content-Type");
   }
+  if (origin && !allowed) console.warn("Wishlist: refused origin", origin);
   return allowed || !origin; // no Origin header = same-origin / server-side call
 }
 
@@ -1910,7 +1916,7 @@ app.options("/api/public/wishlist", (req, res) => { wishCors(req, res); res.send
 app.get("/api/public/ping", (req, res) => { wishCors(req, res); res.json({ ok: true }); });
 const wishUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });
 app.post("/api/public/wishlist", (req, res, next) => {
-  if (!wishCors(req, res)) return res.status(403).json({ error: "Not allowed." });
+  if (!wishCors(req, res)) return res.status(403).json({ error: "Not allowed from " + (req.get("origin") || "unknown site") });
   wishUpload.single("photo")(req, res, (err) => {
     if (err) return res.status(400).json({ error: "That photo is too large (15MB max)." });
     next();
