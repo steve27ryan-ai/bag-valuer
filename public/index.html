@@ -523,6 +523,41 @@
   .to-cell.today { border-color: var(--bronze); }
   .to-cell .to-num { font-size: 0.66rem; color: var(--stone); font-variant-numeric: tabular-nums; }
   .to-cell.today .to-num { color: var(--bronze-deep); font-weight: 500; }
+  /* Client wishlists */
+  .wl-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .wl-head h2 { font-family: "Cormorant Garamond", serif; font-weight: 400; font-size: 1.7rem; margin: 0; }
+  .wl-search { width: 100%; font-family: "Jost"; font-size: 1rem; color: var(--espresso); border: 1px solid var(--border); background: var(--white); padding: 14px 16px; margin-bottom: 12px; }
+  .wl-search:focus { outline: none; border-color: var(--bronze); }
+  .wl-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .wl-bar select { font-family: "Jost"; font-size: 0.8rem; border: 1px solid var(--border); background: var(--white); padding: 7px 10px; color: var(--espresso); }
+  .wl-summary { font-size: 0.82rem; color: var(--bronze-deep); margin: 0 0 12px; min-height: 1.1em; }
+  .wl-list { display: flex; flex-direction: column; gap: 8px; }
+  .wl-item { display: grid; grid-template-columns: 76px 1fr; gap: 14px; background: var(--white); border: 1px solid var(--border); padding: 14px; }
+  .wl-item.is-closed { opacity: 0.6; }
+  .wl-thumb { width: 76px; height: 76px; background: var(--pearl); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .wl-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+  .wl-thumb span { font-family: "Cormorant Garamond", serif; font-size: 1.6rem; color: var(--bronze-pale); }
+  .wl-body { min-width: 0; }
+  .wl-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .wl-piece { font-size: 0.95rem; color: var(--espresso); line-height: 1.45; overflow-wrap: anywhere; }
+  .wl-piece b { font-weight: 500; }
+  .wl-meta { font-size: 0.74rem; color: var(--stone); margin-top: 4px; }
+  .wl-client { font-size: 0.86rem; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+  .wl-client a { color: var(--bronze-deep); }
+  .wl-note { font-size: 0.78rem; color: var(--stone); background: var(--ivory); border-left: 2px solid var(--bronze-pale); padding: 6px 10px; margin-top: 8px; white-space: pre-wrap; }
+  .wl-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .wl-status { font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+  .wl-status.open { background: #FBF3E4; color: #8a6d1f; }
+  .wl-status.matched { background: #EEF4EC; color: #3f6b3d; }
+  .wl-status.closed { background: #EFEDEA; color: var(--stone); }
+  .wl-src { font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bronze-deep); border: 1px solid var(--border); padding: 2px 6px; }
+  .wl-item mark { background: #F5E7C8; color: inherit; padding: 0 1px; }
+  .wl-form { padding: 18px; margin-bottom: 18px; text-align: left; }
+  .wl-form select, .wl-form textarea { width: 100%; font-family: "Jost"; font-size: 0.9rem; color: var(--espresso); border: 1px solid var(--border); background: var(--ivory); padding: 10px 12px; }
+  .wl-form textarea { min-height: 70px; resize: vertical; }
+  .wl-form .po-row { flex-wrap: wrap; }
+  .wl-form .po-field { min-width: 180px; }
+  @media (max-width: 520px) { .wl-item { grid-template-columns: 56px 1fr; } .wl-thumb { width: 56px; height: 56px; } }
   .to-chip { font-size: 0.6rem; font-weight: 600; color: #2a2018; border-radius: 3px; padding: 1px 4px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .to-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 16px; }
   .to-legend span { display: inline-flex; align-items: center; gap: 7px; font-size: 0.8rem; color: var(--stone); }
@@ -744,6 +779,7 @@
     <button class="tab" id="tabTasks" type="button">Tasks</button>
     <button class="tab" id="tabCashout" type="button">Cash out</button>
     <button class="tab" id="tabTimeoff" type="button" hidden>Time off</button>
+    <button class="tab" id="tabWish" type="button">Client wishlists</button>
   </nav>
 
   <div id="valuationView">
@@ -1030,6 +1066,50 @@
         <div id="poList" class="po-list"></div>
       </div>
     </div>
+  </div>
+
+  <div id="wishView" hidden>
+    <div class="wl-head">
+      <h2>Client wishlists</h2>
+      <button class="btn-solid" id="wlAddBtn" type="button">+ Add a wish</button>
+    </div>
+
+    <div class="card wl-form" id="wlForm" hidden>
+      <div class="co-intro">For a walk-in or phone request. Wishes from the website's Wish List page arrive here automatically.</div>
+      <div class="po-row">
+        <div class="po-field"><label for="wlName">Client name *</label><input id="wlName" maxlength="120" autocomplete="off" /></div>
+        <div class="po-field"><label for="wlPhone">Phone *</label><input id="wlPhone" type="tel" maxlength="40" autocomplete="off" /></div>
+      </div>
+      <div class="po-row">
+        <div class="po-field"><label for="wlEmail">Email</label><input id="wlEmail" type="email" maxlength="160" autocomplete="off" /></div>
+        <div class="po-field"><label for="wlCat">Category</label>
+          <select id="wlCat"><option>Handbag</option><option>Jewellery</option><option>Watch</option><option>Small leather goods</option><option>Shoes</option><option>Clothing</option><option>Accessories</option><option>Other</option></select>
+        </div>
+      </div>
+      <div class="po-row">
+        <div class="po-field"><label for="wlBrand">Brand *</label><input id="wlBrand" maxlength="80" autocomplete="off" placeholder="e.g. Chanel" /></div>
+        <div class="po-field"><label for="wlPrice">Price range</label>
+          <select id="wlPrice"><option value="">Not specified</option><option>Under €500</option><option>€500 – €1,500</option><option>€1,500 – €3,000</option><option>€3,000 – €6,000</option><option>€6,000+</option></select>
+        </div>
+      </div>
+      <div class="po-row"><div class="po-field"><label for="wlDesc">The piece *</label><textarea id="wlDesc" maxlength="1000" placeholder="e.g. Classic Flap, medium, black caviar, gold hardware"></textarea></div></div>
+      <div class="po-row"><div class="po-field"><label for="wlNote">Staff note</label><input id="wlNote" maxlength="500" autocomplete="off" placeholder="e.g. regular client, flexible on colour" /></div></div>
+      <div class="po-row"><div class="po-field"><label for="wlPhoto">Photo (optional)</label><input id="wlPhoto" type="file" accept="image/*" /></div></div>
+      <div class="po-actions"><button class="btn-solid" id="wlSave" type="button">Save wish</button><button class="linkbtn" id="wlCancel" type="button">Cancel</button><span class="co-savemsg" id="wlMsg"></span></div>
+    </div>
+
+    <input class="wl-search" id="wlSearch" type="search" placeholder="Search a bag, model, brand, client or phone… e.g. Speedy 30" autocomplete="off" />
+    <div class="wl-bar">
+      <div class="seg" id="wlStatusSeg">
+        <button class="seg-btn active" data-ws="open" type="button">Open</button>
+        <button class="seg-btn" data-ws="matched" type="button">Matched</button>
+        <button class="seg-btn" data-ws="closed" type="button">Closed</button>
+        <button class="seg-btn" data-ws="all" type="button">All</button>
+      </div>
+      <select id="wlCatFilter" aria-label="Category"><option value="">All categories</option><option>Handbag</option><option>Jewellery</option><option>Watch</option><option>Small leather goods</option><option>Shoes</option><option>Clothing</option><option>Accessories</option><option>Other</option></select>
+    </div>
+    <div class="wl-summary" id="wlSummary"></div>
+    <div class="wl-list" id="wlList"></div>
   </div>
 
   <div id="timeoffView" hidden>
@@ -2055,6 +2135,8 @@
   const tabOffer = document.getElementById("tabOffer");
   const tabCashout = document.getElementById("tabCashout");
   const tabTimeoff = document.getElementById("tabTimeoff");
+  const tabWish = document.getElementById("tabWish");
+  const wishView = document.getElementById("wishView");
   const valuationView = document.getElementById("valuationView");
   const offerView = document.getElementById("offerView");
   const historyView = document.getElementById("historyView");
@@ -2083,6 +2165,7 @@
     tabTasks.onclick = () => showTab("tasks");
     tabCashout.onclick = () => showTab("cashout");
     tabTimeoff.onclick = () => showTab("timeoff");
+    tabWish.onclick = () => showTab("wish");
     ["ofTicket", "ofOffer", "ofCost"].forEach((id) => (document.getElementById(id).oninput = calcOffer));
     document.querySelectorAll("#ofOwn .seg-btn").forEach((b) =>
       (b.onclick = () => {
@@ -2125,22 +2208,26 @@
     const isOffer = which === "offer";
     const isCashout = which === "cashout";
     const isTimeoff = which === "timeoff";
+    const isWish = which === "wish";
     tabValue.classList.toggle("active", isValue);
     tabOffer.classList.toggle("active", isOffer);
     tabTasks.classList.toggle("active", isTasks);
     tabCashout.classList.toggle("active", isCashout);
     tabTimeoff.classList.toggle("active", isTimeoff);
+    tabWish.classList.toggle("active", isWish);
     valuationView.hidden = !isValue;
     offerView.hidden = !isOffer;
     tasksView.hidden = !isTasks;
     cashoutView.hidden = !isCashout;
     timeoffView.hidden = !isTimeoff;
+    wishView.hidden = !isWish;
     // History is a mode inside the New Valuation view now — hide it unless we're there.
     if (isValue) updateModeUi();
     else historyView.hidden = true;
     if (isTasks) openTasks();
     if (isCashout) openCashout();
     if (isTimeoff) openTimeoff();
+    if (isWish) openWishlists();
   }
 
   // Offer calculator — branches on ownership. Store-owned: profit vs Liberty cost (30% margin floor).
@@ -3085,6 +3172,198 @@
     const r = await fetch("/api/payouts/" + id, { method: "DELETE", headers: taskHeaders() });
     if (r.status === 401) { relock(); return; }
     if (r.ok) loadPayouts();
+  }
+
+  // ── Client wishlists ──────────────────────────────────────────
+  let wlItems = [];
+  let wlStatus = "open";
+  let wlWired = false;
+  // Shorthand staff and clients use → the full brand name, so "LV" finds "Louis Vuitton".
+  const WL_ALIASES = {
+    lv: "louis vuitton", ysl: "saint laurent", bv: "bottega veneta", vca: "van cleef",
+    mj: "marc jacobs", dg: "dolce gabbana", tf: "tom ford",
+  };
+  function wlNorm(s) {
+    return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9€+]+/g, " ").trim();
+  }
+  function wlHay(w) {
+    const text = [w.brand, w.description, w.category, w.name, w.email, w.ref, w.staff_note, w.price_range].join(" ");
+    return " " + wlNorm(text) + " " + String(w.phone || "").replace(/\D/g, "") + " ";
+  }
+  // Every word typed must appear somewhere (any order). Brand shorthand also matches the full
+  // name, and "birkin30" still finds "Birkin 30".
+  function wlMatches(w, tokens) {
+    const hay = wlHay(w);
+    const squashed = hay.replace(/ /g, "");
+    return tokens.every((t) => hay.includes(t) || (WL_ALIASES[t] && hay.includes(WL_ALIASES[t])) || squashed.includes(t));
+  }
+  // Highlight matches in already-escaped text; accents are ignored so "hermes" marks "Hermès".
+  function wlHighlight(text, tokens) {
+    const raw = String(text || "");
+    if (!tokens.length) return escapeHtml(raw);
+    const plain = raw.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    if (plain.length !== raw.length) return escapeHtml(raw); // odd unicode: skip highlighting
+    const marks = new Array(raw.length).fill(false);
+    tokens.concat(tokens.map((t) => WL_ALIASES[t]).filter(Boolean)).forEach((t) => {
+      if (t.length < 2) return;
+      let i = plain.indexOf(t);
+      while (i >= 0) { for (let k = i; k < i + t.length; k++) marks[k] = true; i = plain.indexOf(t, i + t.length); }
+    });
+    let out = "", open = false;
+    for (let i = 0; i < raw.length; i++) {
+      if (marks[i] && !open) { out += "<mark>"; open = true; }
+      if (!marks[i] && open) { out += "</mark>"; open = false; }
+      out += escapeHtml(raw[i]);
+    }
+    return out + (open ? "</mark>" : "");
+  }
+  function wlWhen(iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" });
+  }
+  function openWishlists() {
+    if (!wlWired) {
+      wlWired = true;
+      document.getElementById("wlSearch").oninput = renderWishlists;
+      document.getElementById("wlCatFilter").onchange = renderWishlists;
+      document.querySelectorAll("#wlStatusSeg .seg-btn").forEach((b) => (b.onclick = () => {
+        wlStatus = b.dataset.ws;
+        document.querySelectorAll("#wlStatusSeg .seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+        renderWishlists();
+      }));
+      document.getElementById("wlAddBtn").onclick = () => {
+        const f = document.getElementById("wlForm"); f.hidden = !f.hidden;
+        if (!f.hidden) document.getElementById("wlName").focus();
+      };
+      document.getElementById("wlCancel").onclick = () => { document.getElementById("wlForm").hidden = true; };
+      document.getElementById("wlSave").onclick = saveWish;
+    }
+    loadWishlists();
+  }
+  async function loadWishlists() {
+    const list = document.getElementById("wlList");
+    if (!wlItems.length) list.innerHTML = '<div class="po-empty">Loading…</div>';
+    try {
+      const r = await fetch("/api/wishlists", { headers: taskHeaders() });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      if (!r.ok) throw new Error(p.error || "Failed");
+      wlItems = p.wishlists || [];
+      renderWishlists();
+    } catch (e) {
+      list.innerHTML = '<div class="po-empty">Couldn\'t load wishlists: ' + escapeHtml(e.message) + "</div>";
+    }
+  }
+  function renderWishlists() {
+    const list = document.getElementById("wlList");
+    const summary = document.getElementById("wlSummary");
+    const q = document.getElementById("wlSearch").value.trim();
+    const tokens = wlNorm(q).split(" ").filter(Boolean);
+    const cat = document.getElementById("wlCatFilter").value;
+    const rows = wlItems.filter((w) =>
+      (wlStatus === "all" || w.status === wlStatus) &&
+      (!cat || w.category === cat) &&
+      (!tokens.length || wlMatches(w, tokens)));
+    const openCount = wlItems.filter((w) => w.status === "open").length;
+    if (tokens.length) {
+      const people = new Set(rows.map((w) => String(w.phone || "").replace(/\D/g, "") || String(w.name || "").toLowerCase())).size;
+      summary.textContent = rows.length
+        ? rows.length + " wish" + (rows.length === 1 ? "" : "es") + " from " + people + " client" + (people === 1 ? "" : "s") + " match “" + q + "”"
+        : "No client has “" + q + "” on their wishlist" + (wlStatus === "all" ? "." : " (" + wlStatus + " only — try All).");
+    } else {
+      summary.textContent = openCount + " open wish" + (openCount === 1 ? "" : "es") + " · " + wlItems.length + " in total";
+    }
+    if (!rows.length) { list.innerHTML = tokens.length ? "" : '<div class="po-empty">Nothing here yet.</div>'; return; }
+    list.innerHTML = rows.map((w) => {
+      const wa = String(w.phone || "").replace(/[^\d+]/g, "").replace(/^\+/, "").replace(/^0/, "353");
+      const thumb = w.photo_url
+        ? '<img src="' + escapeHtml(w.photo_url) + '" alt="" data-wl-photo="1" loading="lazy">'
+        : "<span>" + escapeHtml((w.brand || "?").charAt(0).toUpperCase()) + "</span>";
+      const piece = "<b>" + wlHighlight(w.brand, tokens) + "</b>" + (w.description ? " — " + wlHighlight(w.description, tokens) : "");
+      const meta = [w.category, w.price_range, "added " + wlWhen(w.created_at) + (w.added_by ? " by " + w.added_by : ""), w.ref]
+        .filter(Boolean).map(escapeHtml).join(" · ");
+      const acts = [];
+      if (w.status !== "matched") acts.push('<button class="to-btn approve" data-wl-set="matched" data-id="' + w.id + '">Matched</button>');
+      if (w.status !== "closed") acts.push('<button class="to-btn" data-wl-set="closed" data-id="' + w.id + '">Close</button>');
+      if (w.status !== "open") acts.push('<button class="to-btn" data-wl-set="open" data-id="' + w.id + '">Reopen</button>');
+      acts.push('<button class="to-btn" data-wl-note="' + w.id + '">' + (w.staff_note ? "Edit note" : "Add note") + "</button>");
+      acts.push('<button class="to-btn decline" data-wl-del="' + w.id + '">Delete</button>');
+      return '<div class="wl-item' + (w.status === "closed" ? " is-closed" : "") + '">' +
+        '<div class="wl-thumb">' + thumb + "</div>" +
+        '<div class="wl-body">' +
+          '<div class="wl-top"><div class="wl-piece">' + piece + "</div>" +
+          '<span class="wl-status ' + escapeHtml(w.status) + '">' + escapeHtml(w.status) + "</span></div>" +
+          '<div class="wl-meta">' + meta + "</div>" +
+          '<div class="wl-client"><span>' + wlHighlight(w.name, tokens) + "</span>" +
+            (w.phone ? '<a href="tel:' + escapeHtml(w.phone.replace(/\s/g, "")) + '">' + escapeHtml(w.phone) + "</a>" : "") +
+            (wa ? '<a href="https://wa.me/' + escapeHtml(wa) + '" target="_blank" rel="noopener">WhatsApp</a>' : "") +
+            (w.email ? '<a href="mailto:' + escapeHtml(w.email) + '">' + escapeHtml(w.email) + "</a>" : "") +
+            '<span class="wl-src">' + (w.source === "website" ? "Website" : "In store") + "</span></div>" +
+          (w.staff_note ? '<div class="wl-note">' + wlHighlight(w.staff_note, tokens) + "</div>" : "") +
+          '<div class="wl-actions">' + acts.join("") + "</div>" +
+        "</div></div>";
+    }).join("");
+    list.querySelectorAll("[data-wl-photo]").forEach((img) => (img.onclick = () => openLightbox(img.src)));
+    list.querySelectorAll("[data-wl-set]").forEach((b) => (b.onclick = () => patchWish(b.dataset.id, { status: b.dataset.wlSet })));
+    list.querySelectorAll("[data-wl-note]").forEach((b) => (b.onclick = () => {
+      const w = wlItems.find((x) => x.id === b.dataset.wlNote);
+      const note = prompt("Staff note for this wish:", (w && w.staff_note) || "");
+      if (note !== null) patchWish(b.dataset.wlNote, { staff_note: note });
+    }));
+    list.querySelectorAll("[data-wl-del]").forEach((b) => (b.onclick = () => deleteWish(b.dataset.wlDel)));
+  }
+  async function patchWish(id, patch) {
+    const r = await fetch("/api/wishlists/" + id, { method: "PATCH", headers: taskHeaders(true), body: JSON.stringify(patch) });
+    if (r.status === 401) { relock(); return; }
+    const p = await r.json().catch(() => ({}));
+    if (!r.ok) { alert(p.error || "Couldn't update."); return; }
+    wlItems = wlItems.map((w) => (w.id === id ? p.wishlist : w));
+    renderWishlists();
+  }
+  async function deleteWish(id) {
+    const w = wlItems.find((x) => x.id === id);
+    if (!confirm("Delete " + ((w && w.name) || "this") + "'s wish for " + ((w && w.brand) || "this piece") + "? This can't be undone — use Close to keep a record.")) return;
+    const r = await fetch("/api/wishlists/" + id, { method: "DELETE", headers: taskHeaders() });
+    if (r.status === 401) { relock(); return; }
+    if (r.ok) { wlItems = wlItems.filter((x) => x.id !== id); renderWishlists(); }
+  }
+  function wlReadPhoto(file) {
+    return new Promise((resolve) => {
+      if (!file) return resolve(null);
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => resolve(null);
+      fr.readAsDataURL(file);
+    });
+  }
+  async function saveWish() {
+    const btn = document.getElementById("wlSave"), msg = document.getElementById("wlMsg");
+    const v = (id) => document.getElementById(id).value.trim();
+    if (!v("wlName") || !v("wlPhone")) { msg.textContent = "Client name and phone are required"; return; }
+    if (!v("wlBrand") && !v("wlDesc")) { msg.textContent = "Add a brand or describe the piece"; return; }
+    btn.disabled = true; msg.textContent = "Saving…";
+    try {
+      const photo = await wlReadPhoto(document.getElementById("wlPhoto").files[0]);
+      const r = await fetch("/api/wishlists", {
+        method: "POST", headers: taskHeaders(true),
+        body: JSON.stringify({
+          name: v("wlName"), phone: v("wlPhone"), email: v("wlEmail"), category: v("wlCat"),
+          brand: v("wlBrand"), description: v("wlDesc"), price_range: v("wlPrice"),
+          staff_note: v("wlNote"), added_by: currentUser || null, photo,
+        }),
+      });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      if (!r.ok) { msg.textContent = p.error || "Failed"; return; }
+      ["wlName", "wlPhone", "wlEmail", "wlBrand", "wlDesc", "wlNote", "wlPhoto"].forEach((id) => (document.getElementById(id).value = ""));
+      document.getElementById("wlPrice").value = "";
+      msg.textContent = "Saved ✓";
+      setTimeout(() => { msg.textContent = ""; document.getElementById("wlForm").hidden = true; }, 1200);
+      wlItems.unshift(p.wishlist);
+      renderWishlists();
+    } catch (e) { msg.textContent = "Failed"; }
+    finally { btn.disabled = false; }
   }
 
   // ── Time off / vacation ───────────────────────────────────────
