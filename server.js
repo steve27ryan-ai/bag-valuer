@@ -736,6 +736,119 @@ const vacationStore = {
   },
 };
 
+// ── Client wishlists ──────────────────────────────────────────────
+// Pieces clients want us to find. Rows come from the public Wish List page on the website
+// (source "website") or are added by staff in the hub for walk-in / phone requests ("in-store").
+const WISH_FILE = join(__dirname, "wishlists.local.json");
+const WISH_STATUSES = ["open", "matched", "closed"];
+function wishRead() {
+  try { return existsSync(WISH_FILE) ? JSON.parse(readFileSync(WISH_FILE, "utf8")) : []; } catch { return []; }
+}
+function wishWrite(a) { writeFileSync(WISH_FILE, JSON.stringify(a, null, 2)); }
+const clip = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null);
+
+// Shrink a wish photo and store it. Returns a URL (or a data: URI when Supabase is off).
+async function storeWishPhoto(buffer, id) {
+  const jpg = await sharp(buffer)
+    .rotate()
+    .resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+  if (!supabase) return "data:image/jpeg;base64," + jpg.toString("base64");
+  const path = `wishlist/${id}.jpg`;
+  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, jpg, { contentType: "image/jpeg", upsert: true });
+  if (error) throw new Error(error.message);
+  const { data: pub } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+  return (pub && pub.publicUrl) || null;
+}
+
+const wishStore = {
+  async list() {
+    if (supabase) {
+      const { data, error } = await supabase.from("wishlists").select("*").order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+    return wishRead().slice().sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  },
+  async create(w) {
+    const now = new Date().toISOString();
+    const row = {
+      id: w.id || randomUUID(),
+      ref: clip(w.ref, 40),
+      source: w.source === "website" ? "website" : "in-store",
+      name: clip(w.name, 120),
+      phone: clip(w.phone, 40),
+      email: clip(w.email, 160),
+      category: clip(w.category, 60),
+      brand: clip(w.brand, 80),
+      description: clip(w.description, 1000),
+      price_range: clip(w.price_range, 60),
+      photo_url: w.photo_url || null,
+      status: "open",
+      staff_note: clip(w.staff_note, 500),
+      added_by: clip(w.added_by, 80),
+      created_at: now,
+      updated_at: now,
+    };
+    if (supabase) {
+      const { error } = await supabase.from("wishlists").insert(row);
+      if (error) throw new Error(error.message);
+    } else {
+      const arr = wishRead(); arr.push(row); wishWrite(arr);
+    }
+    return row;
+  },
+  async update(id, patch) {
+    patch = { ...patch, updated_at: new Date().toISOString() };
+    if (supabase) {
+      const { data, error } = await supabase.from("wishlists").update(patch).eq("id", id).select().maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    const arr = wishRead(); const i = arr.findIndex((r) => r.id === id);
+    if (i < 0) return null;
+    arr[i] = { ...arr[i], ...patch }; wishWrite(arr);
+    return arr[i];
+  },
+  async remove(id) {
+    if (supabase) {
+      const { error } = await supabase.from("wishlists").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      await supabase.storage.from(PHOTO_BUCKET).remove([`wishlist/${id}.jpg`]).catch(() => {});
+    } else {
+      wishWrite(wishRead().filter((r) => r.id !== id));
+    }
+    return true;
+  },
+};
+
+// The website form posts here directly, so this endpoint is open (no passcode) — guarded by an
+// origin allow-list, a honeypot field, length caps and a per-IP rate limit instead.
+const WISH_ORIGINS = (process.env.WISHLIST_ORIGINS ||
+  "https://siopaella.com,https://www.siopaella.com,https://siopaella.myshopify.com")
+  .split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);
+const wishHits = new Map(); // ip -> [timestamps]
+function wishRateLimited(ip) {
+  const now = Date.now(), windowMs = 10 * 60 * 1000;
+  const hits = (wishHits.get(ip) || []).filter((t) => now - t < windowMs);
+  hits.push(now);
+  wishHits.set(ip, hits);
+  if (wishHits.size > 5000) wishHits.clear();
+  return hits.length > 6;
+}
+function wishCors(req, res) {
+  const origin = (req.get("origin") || "").replace(/\/$/, "");
+  const allowed = WISH_ORIGINS.includes(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  if (allowed) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
+    res.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+  }
+  return allowed || !origin; // no Origin header = same-origin / server-side call
+}
+
 // ── End-of-month supplies reminder (auto-posted to Team Updates) ───
 const SUPPLIES_REMINDER = "🧾 End-of-month supplies check — please check stock of shipping boxes, credit & receipt rolls, price tags, printer inks (all types), wrapping paper, etc. If anything is running low, add it to the task list.";
 const SUPPLIES_TASK_TITLE = "End-of-month supplies check — count shipping boxes, credit & receipt rolls, price tags, printer inks, wrapping paper, etc. and reorder anything low.";
@@ -1788,6 +1901,89 @@ app.delete("/api/vacations/:id", requireCode, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── Client wishlists API ──────────────────────────────────────────
+// Public: the website Wish List page. `ping` lets the page wake the server (Render free tier
+// sleeps) while the customer is still filling in the form.
+app.options("/api/public/wishlist", (req, res) => { wishCors(req, res); res.sendStatus(204); });
+app.get("/api/public/ping", (req, res) => { wishCors(req, res); res.json({ ok: true }); });
+const wishUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });
+app.post("/api/public/wishlist", (req, res, next) => {
+  if (!wishCors(req, res)) return res.status(403).json({ error: "Not allowed." });
+  wishUpload.single("photo")(req, res, (err) => {
+    if (err) return res.status(400).json({ error: "That photo is too large (15MB max)." });
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (b.website) return res.json({ ok: true }); // honeypot filled → bot; pretend success
+    const ip = String(req.get("x-forwarded-for") || req.ip || "").split(",")[0].trim();
+    if (wishRateLimited(ip)) return res.status(429).json({ error: "Too many requests — please try again later." });
+    const name = clip(b.name, 120), phone = clip(b.phone, 40), brand = clip(b.brand, 80), description = clip(b.description, 1000);
+    if (!name || !phone || !brand || !description) {
+      return res.status(400).json({ error: "Name, phone, brand and a description are required." });
+    }
+    const id = randomUUID();
+    let photo_url = null, photo_error = null;
+    if (req.file && /^image\//.test(req.file.mimetype || "image/")) {
+      try { photo_url = await storeWishPhoto(req.file.buffer, id); }
+      catch (e) { photo_error = "Photo could not be saved"; console.error("Wish photo failed:", e.message); }
+    }
+    const row = await wishStore.create({
+      id, source: "website", ref: b.ref, name, phone, email: b.email, category: b.category,
+      brand, description, price_range: b.price_range, photo_url,
+    });
+    res.json({ ok: true, id: row.id, ref: row.ref, photo_url, photo_error });
+  } catch (e) {
+    console.error("Public wishlist failed:", e.message);
+    res.status(500).json({ error: "Could not save — please try again." });
+  }
+});
+
+// Staff (passcode-protected)
+app.get("/api/wishlists", requireCode, async (req, res) => {
+  try { res.json({ wishlists: await wishStore.list() }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/wishlists", requireCode, async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!clip(b.name, 120) || !clip(b.phone, 40)) return res.status(400).json({ error: "Client name and phone are required." });
+    if (!clip(b.brand, 80) && !clip(b.description, 1000)) return res.status(400).json({ error: "Add a brand or a description." });
+    const id = randomUUID();
+    let photo_url = null;
+    const m = typeof b.photo === "string" && /^data:image\/[\w.+-]+;base64,(.+)$/i.exec(b.photo);
+    if (m) photo_url = await storeWishPhoto(Buffer.from(m[1], "base64"), id);
+    const row = await wishStore.create({ ...b, id, source: "in-store", photo_url });
+    res.json({ wishlist: row });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch("/api/wishlists/:id", requireCode, async (req, res) => {
+  try {
+    const b = req.body || {}, patch = {};
+    if (b.status !== undefined) {
+      if (!WISH_STATUSES.includes(b.status)) return res.status(400).json({ error: "Invalid status." });
+      patch.status = b.status;
+    }
+    if (b.staff_note !== undefined) patch.staff_note = clip(b.staff_note, 500);
+    if (!Object.keys(patch).length) return res.status(400).json({ error: "Nothing to update." });
+    const row = await wishStore.update(req.params.id, patch);
+    if (!row) return res.status(404).json({ error: "Not found." });
+    res.json({ wishlist: row });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete("/api/wishlists/:id", requireCode, async (req, res) => {
+  try { await wishStore.remove(req.params.id); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.listen(PORT, "0.0.0.0", () => {
