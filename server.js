@@ -139,6 +139,34 @@ const staffStore = {
   },
 };
 
+// ── Monthly sales target ──────────────────────────────────────────
+// One row per month (YYYY-MM): the target and the running total, both edited in the hub.
+const TARGET_FILE = join(__dirname, "sales_targets.local.json");
+function targetRead() { try { return existsSync(TARGET_FILE) ? JSON.parse(readFileSync(TARGET_FILE, "utf8")) : []; } catch { return []; } }
+function targetWrite(a) { writeFileSync(TARGET_FILE, JSON.stringify(a, null, 2)); }
+const targetStore = {
+  async get(month) {
+    if (supabase) {
+      const { data, error } = await supabase.from("sales_targets").select("*").eq("month", month).maybeSingle();
+      if (error) throw new Error(error.message);
+      return data || null;
+    }
+    return targetRead().find((r) => r.month === month) || null;
+  },
+  async set(month, { target, current, by }) {
+    const row = { month, target, current, updated_by: by || null, updated_at: new Date().toISOString() };
+    if (supabase) {
+      const { error } = await supabase.from("sales_targets").upsert(row, { onConflict: "month" });
+      if (error) throw new Error(error.message);
+      return row;
+    }
+    const arr = targetRead(); const i = arr.findIndex((r) => r.month === month);
+    if (i >= 0) arr[i] = row; else arr.push(row);
+    targetWrite(arr);
+    return row;
+  },
+};
+
 // ── Message board ─────────────────────────────────────────────────
 // Team updates (e.g. weekly sales target). Supabase `messages` table in prod, local file in dev.
 const MSG_FILE = join(__dirname, "messages.local.json");
@@ -1954,6 +1982,25 @@ app.delete("/api/vacations/:id", requireCode, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── Monthly sales target API ──────────────────────────────────────
+function dublinMonth(d = new Date()) { return dublinDate(d).slice(0, 7); }
+app.get("/api/sales-target", requireCode, async (req, res) => {
+  try {
+    const month = /^\d{4}-\d{2}$/.test(req.query.month || "") ? req.query.month : dublinMonth();
+    res.json({ month, target: await targetStore.get(month) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post("/api/sales-target", requireCode, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const month = /^\d{4}-\d{2}$/.test(b.month || "") ? b.month : dublinMonth();
+    const target = Math.max(0, Math.round(Number(b.target) || 0));
+    const current = Math.max(0, Math.round(Number(b.current) || 0));
+    const row = await targetStore.set(month, { target, current, by: String(b.by || "").trim().slice(0, 80) });
+    res.json({ target: row });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── Store checklists API (opening / closing / weekly) ─────────────
