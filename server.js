@@ -736,6 +736,53 @@ const vacationStore = {
   },
 };
 
+// ── Store checklists (opening / closing / weekly) ─────────────────
+// One row per ticked item: (date, list, item) with who ticked it and when.
+// Unticking deletes the row. Each Dublin day starts blank.
+const CHECKLIST_FILE = join(__dirname, "checklists.local.json");
+function checklistRead() {
+  try { return existsSync(CHECKLIST_FILE) ? JSON.parse(readFileSync(CHECKLIST_FILE, "utf8")) : []; } catch { return []; }
+}
+function checklistWrite(a) { writeFileSync(CHECKLIST_FILE, JSON.stringify(a, null, 2)); }
+const checklistStore = {
+  async list(date, store) {
+    if (supabase) {
+      const { data, error } = await supabase.from("checklists").select("*").eq("date", date).eq("store", store);
+      if (error) throw new Error(error.message);
+      return data || [];
+    }
+    return checklistRead().filter((r) => r.date === date && r.store === store);
+  },
+  // Tick an item: record (or refresh) who did it and when.
+  async tick(date, store, list, item, by) {
+    const now = new Date().toISOString();
+    if (supabase) {
+      // delete any existing row for this cell, then insert fresh (upsert on the unique key)
+      await supabase.from("checklists").delete().eq("date", date).eq("store", store).eq("list", list).eq("item", item);
+      const row = { id: randomUUID(), date, store, list, item, done_by: by || null, done_at: now };
+      const { error } = await supabase.from("checklists").insert(row);
+      if (error) throw new Error(error.message);
+      return row;
+    }
+    const arr = checklistRead();
+    const i = arr.findIndex((r) => r.date === date && r.store === store && r.list === list && r.item === item);
+    const row = { id: i >= 0 ? arr[i].id : randomUUID(), date, store, list, item, done_by: by || null, done_at: now };
+    if (i >= 0) arr[i] = row; else arr.push(row);
+    checklistWrite(arr);
+    return row;
+  },
+  // Untick an item: remove the row.
+  async untick(date, store, list, item) {
+    if (supabase) {
+      const { error } = await supabase.from("checklists").delete().eq("date", date).eq("store", store).eq("list", list).eq("item", item);
+      if (error) throw new Error(error.message);
+      return true;
+    }
+    checklistWrite(checklistRead().filter((r) => !(r.date === date && r.store === store && r.list === list && r.item === item)));
+    return true;
+  },
+};
+
 // ── Client wishlists ──────────────────────────────────────────────
 // Pieces clients want us to find. Rows come from the public Wish List page on the website
 // (source "website") or are added by staff in the hub for walk-in / phone requests ("in-store").
@@ -1903,6 +1950,43 @@ app.patch("/api/vacations/:id", requireCode, async (req, res) => {
 app.delete("/api/vacations/:id", requireCode, async (req, res) => {
   try {
     await vacationStore.remove(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Store checklists API (opening / closing / weekly) ─────────────
+const CHECKLIST_LISTS = ["opening", "closing", "weekly"];
+const CHECKLIST_STORES = ["30", "29"];
+app.get("/api/checklists", requireCode, async (req, res) => {
+  try {
+    const date = String(req.query.date || "").slice(0, 10) || dublinDate();
+    const store = String(req.query.store || "").trim();
+    if (!CHECKLIST_STORES.includes(store)) return res.status(400).json({ error: "Unknown store." });
+    res.json({ date, store, rows: await checklistStore.list(date, store) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/checklists", requireCode, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const date = String(b.date || "").slice(0, 10) || dublinDate();
+    const store = String(b.store || "").trim();
+    const list = String(b.list || "").trim();
+    const item = String(b.item || "").trim().slice(0, 120);
+    if (!CHECKLIST_STORES.includes(store)) return res.status(400).json({ error: "Unknown store." });
+    if (!CHECKLIST_LISTS.includes(list)) return res.status(400).json({ error: "Unknown checklist." });
+    if (!item) return res.status(400).json({ error: "Missing item." });
+    if (b.done) {
+      const by = String(b.by || "").trim().slice(0, 80);
+      if (!by) return res.status(400).json({ error: "Pick who you are first." });
+      const row = await checklistStore.tick(date, store, list, item, by);
+      return res.json({ row });
+    }
+    await checklistStore.untick(date, store, list, item);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
