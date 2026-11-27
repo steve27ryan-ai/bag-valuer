@@ -267,6 +267,28 @@
   .again-solid:hover { background: var(--bronze) !important; border-color: var(--bronze) !important; }
 
   /* Message board */
+  /* Monthly sales target */
+  .target { background: var(--white); border: 1px solid var(--border); border-top: 3px solid var(--bronze);
+    padding: 18px 24px; margin: 0 0 18px; }
+  .target-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .target-h { font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--bronze-deep); }
+  .target-nums { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .target-cur { font-family: "Cormorant Garamond", serif; font-size: 2.2rem; line-height: 1; color: var(--espresso); }
+  .target-of { font-size: 0.82rem; color: var(--stone); }
+  .target-tgt { font-family: "Cormorant Garamond", serif; font-size: 1.4rem; color: var(--bronze-deep); }
+  .target-barwrap { height: 12px; background: var(--pearl); border-radius: 999px; overflow: hidden; }
+  .target-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--bronze-pale), var(--bronze)); border-radius: 999px; transition: width 0.5s ease; }
+  .target.hit .target-bar { background: linear-gradient(90deg, #8bbf7a, #5f9e52); }
+  .target-foot { font-size: 0.84rem; color: var(--stone); margin-top: 11px; }
+  .target-foot b { color: var(--bronze-deep); font-weight: 500; }
+  .target.hit .target-foot b { color: #4e8743; }
+  .target-fields { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .target-fields label { font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bronze-deep); display: flex; flex-direction: column; gap: 6px; }
+  .target-euro { display: flex; align-items: center; border: 1px solid var(--border); background: var(--white); padding: 0 10px; }
+  .target-euro > span { color: var(--stone); }
+  .target-euro input { border: 0; outline: none; font-family: "Jost"; font-size: 1.05rem; padding: 10px 6px; width: 130px; color: var(--espresso); background: transparent; }
+  .target-euro:focus-within { border-color: var(--bronze); }
+  .target-actions { display: flex; align-items: center; gap: 14px; }
   .msgboard { background: var(--pearl); border: 1px solid var(--border); border-top: 3px solid var(--bronze);
     padding: 20px 24px; margin: 0 0 30px; }
   .msg-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
@@ -791,6 +813,37 @@
     <p class="sub">Valuations, tasks and team updates — all in one place.</p>
   </header>
 
+  <section class="target" id="targetCard" hidden>
+    <div class="target-head">
+      <span class="target-h">Monthly sales target · <span id="tgtMonth">—</span></span>
+      <button class="linkbtn" id="tgtEdit" type="button">update</button>
+    </div>
+    <div id="tgtView">
+      <div class="target-nums">
+        <span class="target-cur" id="tgtCur">€0</span>
+        <span class="target-of">of</span>
+        <span class="target-tgt" id="tgtTgt">—</span>
+      </div>
+      <div class="target-barwrap"><div class="target-bar" id="tgtBar"></div></div>
+      <div class="target-foot" id="tgtFoot">—</div>
+    </div>
+    <form id="tgtForm" hidden>
+      <div class="target-fields">
+        <label>Sales so far
+          <span class="target-euro"><span>€</span><input type="number" id="tgtCurIn" min="0" step="1000" inputmode="numeric" placeholder="0"></span>
+        </label>
+        <label>Month target
+          <span class="target-euro"><span>€</span><input type="number" id="tgtTgtIn" min="0" step="1000" inputmode="numeric" placeholder="0"></span>
+        </label>
+      </div>
+      <div class="target-actions">
+        <button type="submit" class="btn-solid" id="tgtSave">Save</button>
+        <button type="button" class="linkbtn" id="tgtCancel">cancel</button>
+        <span class="co-savemsg" id="tgtMsg"></span>
+      </div>
+    </form>
+  </section>
+
   <section class="msgboard" id="msgBoard" hidden>
     <div class="msg-head">
       <span class="msg-h">Team updates</span>
@@ -1272,7 +1325,7 @@
     } else {
       codeInput.focus();
     }
-    if (lock.classList.contains("hide")) loadMessages();
+    if (lock.classList.contains("hide")) { loadMessages(); loadTarget(); }
   }
 
   async function verify(code) {
@@ -1297,6 +1350,7 @@
       localStorage.setItem(CODE_KEY, code);
       lock.classList.add("hide");
       loadMessages();
+      loadTarget();
     } else {
       lerr.textContent = "That passcode isn't right.";
       codeInput.value = "";
@@ -2613,7 +2667,82 @@
   const msgToggle = document.getElementById("msgToggle");
   const msgPost = document.getElementById("msgPost");
 
+  // ── Monthly sales target ──────────────────────────────────────
+  const targetCard = document.getElementById("targetCard");
+  let tgtData = { month: null, target: 0, current: 0 };
+  function fmtEur(n) { return "€" + Math.round(Number(n) || 0).toLocaleString("en-IE"); }
+  function tgtMonthName(ym) {
+    if (!ym) return "—";
+    const [y, m] = ym.split("-").map(Number);
+    return new Intl.DateTimeFormat("en-IE", { timeZone: "UTC", month: "long", year: "numeric" }).format(new Date(Date.UTC(y, m - 1, 1)));
+  }
+  function setupTarget() {
+    document.getElementById("tgtEdit").onclick = () => {
+      document.getElementById("tgtCurIn").value = tgtData.current || "";
+      document.getElementById("tgtTgtIn").value = tgtData.target || "";
+      document.getElementById("tgtMsg").textContent = "";
+      document.getElementById("tgtView").hidden = true;
+      document.getElementById("tgtForm").hidden = false;
+    };
+    document.getElementById("tgtCancel").onclick = () => {
+      document.getElementById("tgtForm").hidden = true;
+      document.getElementById("tgtView").hidden = false;
+    };
+    document.getElementById("tgtForm").onsubmit = saveTarget;
+  }
+  async function loadTarget() {
+    try {
+      const r = await fetch("/api/sales-target", { headers: taskHeaders() });
+      if (r.status === 401) return;
+      const p = await r.json();
+      tgtData.month = p.month;
+      tgtData.target = (p.target && p.target.target) || 0;
+      tgtData.current = (p.target && p.target.current) || 0;
+      renderTarget();
+      targetCard.hidden = false;
+    } catch (e) { /* leave hidden if it can't load */ }
+  }
+  function renderTarget() {
+    document.getElementById("tgtMonth").textContent = tgtMonthName(tgtData.month);
+    const cur = tgtData.current, tgt = tgtData.target;
+    document.getElementById("tgtCur").textContent = fmtEur(cur);
+    document.getElementById("tgtTgt").textContent = tgt ? fmtEur(tgt) : "—";
+    const pct = tgt > 0 ? Math.min(100, (cur / tgt) * 100) : 0;
+    document.getElementById("tgtBar").style.width = pct + "%";
+    const hit = tgt > 0 && cur >= tgt;
+    targetCard.classList.toggle("hit", hit);
+    const foot = document.getElementById("tgtFoot");
+    if (!tgt) foot.innerHTML = "No target set yet — tap <b>update</b> to add this month's figure.";
+    else if (hit) foot.innerHTML = "🎉 Target smashed — <b>" + fmtEur(cur - tgt) + "</b> over!";
+    else foot.innerHTML = "<b>" + Math.round(pct) + "%</b> there · <b>" + fmtEur(tgt - cur) + "</b> to go";
+  }
+  async function saveTarget(e) {
+    e.preventDefault();
+    const msg = document.getElementById("tgtMsg");
+    msg.textContent = "Saving…";
+    try {
+      const r = await fetch("/api/sales-target", {
+        method: "POST", headers: taskHeaders(true),
+        body: JSON.stringify({
+          month: tgtData.month,
+          current: Number(document.getElementById("tgtCurIn").value) || 0,
+          target: Number(document.getElementById("tgtTgtIn").value) || 0,
+          by: currentUser || null,
+        }),
+      });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      if (!r.ok) { msg.textContent = p.error || "Couldn't save."; return; }
+      tgtData.target = p.target.target; tgtData.current = p.target.current;
+      renderTarget();
+      document.getElementById("tgtForm").hidden = true;
+      document.getElementById("tgtView").hidden = false;
+      msg.textContent = "";
+    } catch (e) { msg.textContent = "Couldn't save."; }
+  }
+
   function setupMessages() {
+    setupTarget();
     msgToggle.onclick = () => {
       msgAdd.hidden = !msgAdd.hidden;
       if (!msgAdd.hidden) msgInput.focus();
