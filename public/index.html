@@ -523,6 +523,29 @@
   .to-cell.today { border-color: var(--bronze); }
   .to-cell .to-num { font-size: 0.66rem; color: var(--stone); font-variant-numeric: tabular-nums; }
   .to-cell.today .to-num { color: var(--bronze-deep); font-weight: 500; }
+  /* Store checklist */
+  .cl-storeseg { display: flex; width: 100%; margin-bottom: 16px; }
+  .cl-storeseg .seg-btn { flex: 1; padding: 11px 16px; font-size: 0.72rem; }
+  .cl-datebar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+  .cl-date { font-family: "Cormorant Garamond", serif; font-size: 1.25rem; color: var(--espresso); text-align: center; }
+  .cl-count { font-variant-numeric: tabular-nums; font-size: 0.82em; opacity: 0.8; margin-left: 3px; }
+  .cl-progresswrap { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; margin: 14px 0 6px; }
+  .cl-progress { height: 100%; width: 0%; background: var(--bronze); transition: width 0.25s ease; }
+  .cl-intro { font-size: 0.8rem; color: var(--stone); margin-bottom: 14px; min-height: 1em; }
+  .cl-list { display: flex; flex-direction: column; gap: 8px; }
+  .cl-item { display: flex; align-items: flex-start; gap: 12px; background: var(--white); border: 1px solid var(--border); padding: 13px 14px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+  .cl-item:hover { border-color: var(--bronze-pale); }
+  .cl-item.done { background: var(--ivory); border-color: var(--bronze-pale); }
+  .cl-box { flex: none; width: 22px; height: 22px; border: 1.5px solid var(--bronze); border-radius: 5px; display: flex; align-items: center; justify-content: center; margin-top: 1px; color: var(--white); font-size: 0.8rem; line-height: 1; }
+  .cl-item.done .cl-box { background: var(--bronze); border-color: var(--bronze); }
+  .cl-body { min-width: 0; flex: 1; }
+  .cl-text { font-size: 0.92rem; color: var(--espresso); line-height: 1.45; overflow-wrap: anywhere; }
+  .cl-item.done .cl-text { color: var(--stone); }
+  .cl-stamp { font-size: 0.72rem; color: var(--bronze-deep); margin-top: 4px; min-height: 0.9em; }
+  .cl-stamp .cl-reassign { background: none; border: 0; padding: 0 0 0 8px; font: inherit; font-size: 0.72rem; color: var(--stone); cursor: pointer; text-decoration: underline; text-decoration-color: var(--bronze-pale); text-underline-offset: 2px; }
+  .cl-stamp .cl-reassign:hover { color: var(--bronze-deep); }
+  .cl-subhead { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bronze); margin: 16px 0 2px; padding-left: 2px; }
+  .cl-subhead:first-child { margin-top: 0; }
   /* Client wishlists */
   .wl-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
   .wl-head h2 { font-family: "Cormorant Garamond", serif; font-weight: 400; font-size: 1.7rem; margin: 0; }
@@ -785,6 +808,7 @@
     <button class="tab" id="tabOffer" type="button">Offer calc</button>
     <button class="tab" id="tabTasks" type="button">Tasks</button>
     <button class="tab" id="tabCashout" type="button">Cash out</button>
+    <button class="tab" id="tabChecklist" type="button">Checklist</button>
     <button class="tab" id="tabTimeoff" type="button" hidden>Time off</button>
     <button class="tab" id="tabWish" type="button">Client wishlists</button>
   </nav>
@@ -1174,6 +1198,40 @@
         <div class="co-intro">Pending time-off requests. Approving puts the days on everyone's calendar.</div>
         <div id="toPending" class="to-pending"></div>
       </div>
+    </div>
+  </div>
+
+  <div id="checklistView" hidden>
+    <div class="to-head">
+      <h2>Store checklist</h2>
+      <div class="co-who">You: <strong id="clYou">—</strong> <button class="linkbtn" id="clSwitch" type="button">switch user</button></div>
+    </div>
+    <div class="to-picker" id="clPicker" hidden>
+      <div class="who-title">Who are you?</div>
+      <div class="who-list" id="clWhoList"></div>
+    </div>
+
+    <div id="clMain" hidden>
+      <div class="seg cl-storeseg" id="clStoreSeg">
+        <button class="seg-btn active" data-store="30" type="button">Store 30</button>
+        <button class="seg-btn" data-store="29" type="button">Store 29</button>
+      </div>
+
+      <div class="cl-datebar">
+        <button class="linkbtn" id="clPrev" type="button">‹ Prev day</button>
+        <div class="cl-date" id="clDateLabel">—</div>
+        <button class="linkbtn" id="clNext" type="button">Next day ›</button>
+      </div>
+
+      <div class="seg valmode" id="clMode">
+        <button class="seg-btn active" data-cl="opening" type="button">Opening <span class="cl-count" id="clCountOpening"></span></button>
+        <button class="seg-btn" data-cl="closing" type="button">Closing <span class="cl-count" id="clCountClosing"></span></button>
+        <button class="seg-btn" data-cl="weekly" type="button">Weekly <span class="cl-count" id="clCountWeekly"></span></button>
+      </div>
+
+      <div class="cl-progresswrap"><div class="cl-progress" id="clProgress"></div></div>
+      <div class="cl-intro" id="clIntro"></div>
+      <div class="cl-list" id="clList"></div>
     </div>
   </div>
 </div>
@@ -2145,6 +2203,7 @@
   const tabValue = document.getElementById("tabValue");
   const tabOffer = document.getElementById("tabOffer");
   const tabCashout = document.getElementById("tabCashout");
+  const tabChecklist = document.getElementById("tabChecklist");
   const tabTimeoff = document.getElementById("tabTimeoff");
   const tabWish = document.getElementById("tabWish");
   const wishView = document.getElementById("wishView");
@@ -2152,6 +2211,7 @@
   const offerView = document.getElementById("offerView");
   const historyView = document.getElementById("historyView");
   const cashoutView = document.getElementById("cashoutView");
+  const checklistView = document.getElementById("checklistView");
   const timeoffView = document.getElementById("timeoffView");
   const histStatus = document.getElementById("histStatus");
   const histList = document.getElementById("histList");
@@ -2175,6 +2235,7 @@
     tabOffer.onclick = () => showTab("offer");
     tabTasks.onclick = () => showTab("tasks");
     tabCashout.onclick = () => showTab("cashout");
+    tabChecklist.onclick = () => showTab("checklist");
     tabTimeoff.onclick = () => showTab("timeoff");
     tabWish.onclick = () => showTab("wish");
     ["ofTicket", "ofOffer", "ofCost"].forEach((id) => (document.getElementById(id).oninput = calcOffer));
@@ -2218,18 +2279,21 @@
     const isValue = which === "value";
     const isOffer = which === "offer";
     const isCashout = which === "cashout";
+    const isChecklist = which === "checklist";
     const isTimeoff = which === "timeoff";
     const isWish = which === "wish";
     tabValue.classList.toggle("active", isValue);
     tabOffer.classList.toggle("active", isOffer);
     tabTasks.classList.toggle("active", isTasks);
     tabCashout.classList.toggle("active", isCashout);
+    tabChecklist.classList.toggle("active", isChecklist);
     tabTimeoff.classList.toggle("active", isTimeoff);
     tabWish.classList.toggle("active", isWish);
     valuationView.hidden = !isValue;
     offerView.hidden = !isOffer;
     tasksView.hidden = !isTasks;
     cashoutView.hidden = !isCashout;
+    checklistView.hidden = !isChecklist;
     timeoffView.hidden = !isTimeoff;
     wishView.hidden = !isWish;
     // History is a mode inside the New Valuation view now — hide it unless we're there.
@@ -2237,6 +2301,7 @@
     else historyView.hidden = true;
     if (isTasks) openTasks();
     if (isCashout) openCashout();
+    if (isChecklist) openChecklist();
     if (isTimeoff) openTimeoff();
     if (isWish) openWishlists();
   }
@@ -3616,6 +3681,213 @@
     document.getElementById("toLegend").innerHTML = names.length
       ? names.map((n) => '<span><span class="sw" style="background:' + userColor(n) + '"></span>' + escapeHtml(n) + "</span>").join("")
       : '<span style="color:var(--bronze-pale)">No approved time off this month.</span>';
+  }
+
+  // ── Store checklists (opening / closing / weekly) ─────────────
+  // Digitised from the paper opening & closing checklists. Each item id is stable so ticks
+  // survive wording tweaks. The whole board resets every Dublin day.
+  const CHECKLISTS = {
+    opening: {
+      intro: "Opening & through-the-day jobs. Tick each as you go — it logs your name and the time.",
+      groups: [
+        { head: "First thing", items: [
+          { id: "op-online-orders", t: "Check for online orders and bring to 29 basement" },
+          { id: "op-whatsapp", t: "Check the TEAM WhatsApp first — move anything needed into the Task app" },
+          { id: "op-phones-msgs", t: "Answer messages on BOTH work phones" },
+          { id: "op-phone-volume", t: "Check phone volume is full (landline, mobiles, intercom)" },
+          { id: "op-brown-phone", t: "Check the brown phone for Staff Operation tasks / answer queries" },
+        ]},
+        { head: "Clean & tidy", items: [
+          { id: "op-hoover-up", t: "Hoover upstairs" },
+          { id: "op-windows", t: "Check windows & dust glass, including shelving" },
+          { id: "op-desk", t: "Clean desk area / bring unnecessary items to 29 basement" },
+          { id: "op-cabinets", t: "All cabinet lights on / clean glass & mirrors / cabinet shelving" },
+          { id: "op-hoover-basements", t: "Hoover both basements & put on a wash in 29 if needed" },
+          { id: "op-dehumidifier", t: "Check the dehumidifier / empty if needed" },
+        ]},
+        { head: "Shop floor", items: [
+          { id: "op-float", t: "Make sure there's a proper float before lunches" },
+          { id: "op-merchandise", t: 'Merchandise rails & "centre neck" the security tags' },
+          { id: "op-music", t: "Turn the music on / OPEN sign the right way round" },
+          { id: "op-cabinet-cubes", t: "Check cabinet price cubes first thing & rails tidy" },
+        ]},
+        { head: "Stock & intake", items: [
+          { id: "op-price-items", t: "Bring items to be priced to 29 basement, including new arrivals" },
+          { id: "op-deliveries", t: "Open deliveries, send pics to Ella if she's away" },
+          { id: "op-bags-30", t: "Bring bags to 30 / swap the open-shelf bags" },
+          { id: "op-markdowns", t: "Check website stock for markdowns" },
+        ]},
+        { head: "Shipping", items: [
+          { id: "op-shipper", t: "Designated shipper organises boxes & labels — 2nd person checks" },
+        ]},
+        { head: "Through the day", items: [
+          { id: "op-social", t: "Reply to Insta / Shopify / FB / WhatsApp throughout the day" },
+          { id: "op-shoot", t: "If quiet & checklist done — photographer shoot / measure" },
+        ]},
+      ],
+    },
+    closing: {
+      intro: "Closing down both stores. Work through every item before you leave.",
+      groups: [
+        { head: "", items: [
+          { id: "cl-social", t: "Double-check all WhatsApp & social are answered" },
+          { id: "cl-heaters", t: "Heaters, irons & fans off" },
+          { id: "cl-backdoor", t: "Back door bolted & locked in both stores" },
+          { id: "cl-dehumidifier", t: "Dehumidifier emptied" },
+          { id: "cl-washing", t: "Washing machine off / emptied / washing hung out" },
+          { id: "cl-phones", t: "All phones charging in the basement" },
+          { id: "cl-keys", t: "Keys returned to 30 / red & green keys in 30" },
+          { id: "cl-brown-phone", t: "Brown phone returned to 30" },
+          { id: "cl-lights", t: "Lights off" },
+          { id: "cl-rubbish", t: "Rubbish out / to 29 basement / 29 garbage stickered" },
+          { id: "cl-fans-again", t: "Did you turn off ALL fans & heaters before leaving?" },
+          { id: "cl-frontdoor", t: "Front door locked (not electronically) / check hairdresser's shutter for 29" },
+        ]},
+      ],
+    },
+    weekly: {
+      intro: "Weekly jobs — Saturdays. Both stores.",
+      groups: [
+        { head: "", items: [
+          { id: "wk-bathroom", t: "Clean bathroom & kitchen in both stores" },
+          { id: "wk-plants", t: "Water the plants" },
+          { id: "wk-mop", t: "Mop the floors" },
+          { id: "wk-recycling", t: "Rubbish out / organise the recycling" },
+          { id: "wk-contracts", t: "Contracts filed away" },
+          { id: "wk-photos", t: "Delete & clean old photos off the phones" },
+        ]},
+      ],
+    },
+  };
+  let clDate = null;
+  let clSub = "opening";
+  let clStore = "30";
+  let clRows = [];
+
+  function clCountItems(k) { return CHECKLISTS[k].groups.reduce((n, g) => n + g.items.length, 0); }
+  function clShiftDay(ds, delta) {
+    const p = String(ds).split("-");
+    const dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12));
+    dt.setUTCDate(dt.getUTCDate() + delta);
+    return dt.toISOString().slice(0, 10);
+  }
+  function clLongDay(ds) {
+    const p = String(ds).split("-");
+    const dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12));
+    return new Intl.DateTimeFormat("en-IE", { timeZone: "UTC", weekday: "long", day: "numeric", month: "short" }).format(dt);
+  }
+
+  function openChecklist() {
+    document.getElementById("clYou").textContent = currentUser || "not set";
+    if (!currentUser) { showClPicker(); }
+    else { document.getElementById("clPicker").hidden = true; document.getElementById("clMain").hidden = false; }
+    document.getElementById("clSwitch").onclick = showClPicker;
+    if (!clDate) clDate = coToday();
+    const storeEl = document.getElementById("clStoreSeg");
+    storeEl.querySelectorAll(".seg-btn").forEach((b) => (b.onclick = () => {
+      clStore = b.dataset.store;
+      storeEl.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+      loadChecklist();
+    }));
+    const modeEl = document.getElementById("clMode");
+    modeEl.querySelectorAll(".seg-btn").forEach((b) => (b.onclick = () => {
+      clSub = b.dataset.cl;
+      modeEl.querySelectorAll(".seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+      renderChecklist();
+    }));
+    document.getElementById("clPrev").onclick = () => { clDate = clShiftDay(clDate, -1); loadChecklist(); };
+    document.getElementById("clNext").onclick = () => { if (clDate < coToday()) { clDate = clShiftDay(clDate, 1); loadChecklist(); } };
+    loadChecklist();
+  }
+  function showClPicker() {
+    const list = document.getElementById("clWhoList");
+    list.innerHTML = "";
+    (staffList || []).forEach((name) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = name;
+      b.onclick = () => { currentUser = name; localStorage.setItem(STAFF_KEY, name); openChecklist(); };
+      list.appendChild(b);
+    });
+    document.getElementById("clPicker").hidden = false;
+    document.getElementById("clMain").hidden = true;
+  }
+  async function loadChecklist() {
+    const isToday = clDate === coToday();
+    document.getElementById("clDateLabel").textContent = (isToday ? "Today · " : "") + clLongDay(clDate);
+    document.getElementById("clNext").style.visibility = isToday ? "hidden" : "visible";
+    try {
+      const r = await fetch("/api/checklists?date=" + encodeURIComponent(clDate) + "&store=" + encodeURIComponent(clStore), { headers: taskHeaders() });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      clRows = p.rows || [];
+    } catch (e) { clRows = []; }
+    renderChecklist();
+  }
+  function clDoneMap(list) {
+    const m = {};
+    clRows.filter((r) => r.list === list).forEach((r) => { m[r.item] = r; });
+    return m;
+  }
+  function renderChecklist() {
+    ["opening", "closing", "weekly"].forEach((k) => {
+      const el = document.getElementById("clCount" + k[0].toUpperCase() + k.slice(1));
+      if (el) el.textContent = clRows.filter((r) => r.list === k).length + "/" + clCountItems(k);
+    });
+    const def = CHECKLISTS[clSub];
+    const doneMap = clDoneMap(clSub);
+    const total = clCountItems(clSub);
+    const done = Object.keys(doneMap).length;
+    const editable = clDate === coToday(); // only today's list can be ticked
+    document.getElementById("clIntro").textContent = editable
+      ? def.intro
+      : "Read-only — this is a past day. Switch to today to tick items.";
+    document.getElementById("clProgress").style.width = total ? Math.round((done / total) * 100) + "%" : "0%";
+    let html = "";
+    def.groups.forEach((g) => {
+      if (g.head) html += '<div class="cl-subhead">' + escapeHtml(g.head) + "</div>";
+      g.items.forEach((it) => {
+        const row = doneMap[it.id];
+        const on = !!row;
+        let stamp = "";
+        if (on) {
+          stamp = '<div class="cl-stamp">✓ ' + escapeHtml(row.done_by || "—") + " · " + dublinTime(row.done_at) +
+            (editable ? ' <button class="cl-reassign" data-item="' + it.id + '" type="button">change name</button>' : "") + "</div>";
+        }
+        html += '<div class="cl-item' + (on ? " done" : "") + '" data-item="' + it.id + '">' +
+          '<div class="cl-box">' + (on ? "✓" : "") + "</div>" +
+          '<div class="cl-body"><div class="cl-text">' + escapeHtml(it.t) + "</div>" + stamp + "</div></div>";
+      });
+    });
+    const list = document.getElementById("clList");
+    list.innerHTML = html;
+    if (!editable) return;
+    list.querySelectorAll(".cl-item").forEach((el) => {
+      el.onclick = (e) => {
+        if (e.target.classList.contains("cl-reassign")) return;
+        toggleChecklistItem(el.dataset.item);
+      };
+    });
+    list.querySelectorAll(".cl-reassign").forEach((b) => {
+      b.onclick = (e) => { e.stopPropagation(); postChecklist(b.dataset.item, true); };
+    });
+  }
+  function toggleChecklistItem(id) {
+    if (!currentUser) { showClPicker(); return; }
+    const on = !!clDoneMap(clSub)[id];
+    postChecklist(id, !on);
+  }
+  async function postChecklist(id, done) {
+    if (done && !currentUser) { showClPicker(); return; }
+    try {
+      const r = await fetch("/api/checklists", {
+        method: "POST", headers: taskHeaders(true),
+        body: JSON.stringify({ date: clDate, store: clStore, list: clSub, item: id, done, by: currentUser }),
+      });
+      if (r.status === 401) { relock(); return; }
+      const p = await r.json();
+      clRows = clRows.filter((x) => !(x.list === clSub && x.item === id));
+      if (done && p.row) clRows.push(p.row);
+      renderChecklist();
+    } catch (e) {}
   }
 
   async function loadCashout() {
