@@ -139,6 +139,11 @@ a.pill-btn { color: var(--ink); text-decoration: none; }
 .ing input:checked { background: var(--spice); border-color: var(--spice); }
 .ing input:checked::after { content: ""; width: 5px; height: 10px; border: solid #1b1405; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
 .ing input:checked + span { color: var(--muted); text-decoration: line-through; }
+.ing-h { font-size: .74rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); padding: 12px 4px 2px; }
+.ing-h:first-child { padding-top: 0; }
+.tip { margin-top: 20px; padding: 16px 18px; border-radius: 12px; background: var(--spice-soft); border: 1px solid var(--line); }
+.tip h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+.tip p { margin: 0; max-width: 62ch; }
 .opt { font-size: .74rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
 
 .steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; counter-reset: s; }
@@ -244,8 +249,14 @@ const RECIPES = [
   { id: "pancakes", no: 12, title: "Pancakes", serves: "About 6–8 thin pancakes", time: "20 min", mins: 20, tags: ["Baking & breakfast", "Vegetarian", "Quick"], img: "img/pancakes.jpg",
     ingredients: ["1⅓ cups plain flour", "Pinch of salt", "1 egg", "300ml milk", "Melted butter"],
     method: ["Whisk flour and salt together.", "Beat in egg and gradually add milk to make a smooth pourable batter.", "Stir in a little melted butter; rest for 10 minutes if time allows.", "Heat a lightly buttered nonstick pan and add a thin layer of batter.", "Cook until set and golden, flip, and cook the other side."] },
+  { id: "bola-bola-soup", no: 13, title: "Filipino Bola Bola Soup", serves: "4–6 servings", time: "About 1 hour", mins: 60, tags: ["Family recipe", "Beef & pork", "Chicken", "One pot"], img: "img/bola-bola-soup.jpg",
+    ingredients: ["## Meatballs", "450g ground pork or chicken", "1 small–medium onion, minced", "1 celery stalk, minced", "1 medium carrot, minced", "2 eggs", "1 tsp chopped garlic", "1 tbsp mirin", "1–2 tbsp cornstarch", "Salt and pepper to taste",
+      "## Soup", "Chopped onion, celery and garlic (to taste)", "A little cooking oil", "2–3 cups water initially, plus more as needed", "1 chicken bouillon cube", "Black pepper", "Up to 4 additional eggs", "Fresh cilantro", "Fine misua noodles or fine rice noodles", "Fish sauce if needed", "Steamed rice to serve"],
+    method: ["Mince the onion, celery and carrot. Mix with the meat, two eggs, garlic, mirin, cornstarch, salt and pepper. Shape into small meatballs.", "Sauté onion in a little oil, followed by celery and finally garlic, for about 2 minutes.", "Add water, bouillon and pepper. Simmer for 10 minutes to develop flavour.", "Add meatballs and simmer approximately 30 minutes, until fully cooked (pork 71°C, chicken 74°C at centre).", "Crack up to four eggs into the soup. Poach until cooked to your preference; firm yolks take longer than 2–4 minutes.", "Taste and add fish sauce if needed. Add cilantro and misua noodles; cook until tender and turn off the heat.", "Serve hot with steamed rice."],
+    note: "Amounts for soup vegetables, cilantro and noodles were not specified in the original recording; adjust to taste.",
+    tip: { title: "Family noodle tip", text: "If misua is unavailable, use very fine rice noodles. Soak them in water while preparing the soup, drain, and add near the end. Misua normally does not require soaking." } },
 ];
-const FILTERS = ["All", "Favourites", "Quick", "Chicken", "Beef & pork", "Pasta", "Salads", "Vegetarian", "One pot", "Baking & breakfast"];
+const FILTERS = ["All", "Favourites", "Family recipe", "Quick", "Chicken", "Beef & pork", "Pasta", "Salads", "Vegetarian", "One pot", "Baking & breakfast"];
 
 /* ---------- storage (per-browser, optional) ---------- */
 const store = {
@@ -262,6 +273,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 const byId = id => RECIPES.find(r => r.id === id);
 const pad = n => String(n).padStart(2, "0");
 const isOptional = t => /^optional/i.test(t);
+const isHeading = t => t.startsWith("## ");
 
 function photo(r) {
   return r.img ? `<img src="${r.img}" alt="${esc(r.title)}" loading="lazy">`
@@ -298,7 +310,7 @@ function renderGrid() {
   const q = query.trim().toLowerCase();
   const list = RECIPES.filter(r =>
     (filter === "All" || (filter === "Favourites" ? favs.has(r.id) : r.tags.includes(filter))) &&
-    (!q || (r.title + " " + r.ingredients.join(" ")).toLowerCase().includes(q)));
+    (!q || (r.title + " " + r.tags.join(" ") + " " + r.ingredients.join(" ")).toLowerCase().includes(q)));
   $("#grid").innerHTML = list.length ? list.map(r => `
     <button class="card" type="button" data-id="${r.id}">
       <div class="thumb">${photo(r)}<span class="no mono">${pad(r.no)}</span>${favs.has(r.id) ? `<span class="fav-dot">${heart(true)}</span>` : ""}</div>
@@ -344,13 +356,15 @@ function renderRecipe(r) {
     <section class="sheet">
       <div class="ing-box">
         <div class="sec-h"><h2>Ingredients</h2><button class="link-btn" id="resetBtn" type="button">Reset ticks</button></div>
-        <ul class="ing">${r.ingredients.map((t, i) => `<li><label><input type="checkbox" id="ing-${r.id}-${i}" data-i="${i}" ${p.ing.includes(i) ? "checked" : ""}><span>${esc(t.replace(/^Optional:?\s*/i, ""))}${isOptional(t) ? '<span class="opt">optional</span>' : ""}</span></label></li>`).join("")}</ul>
+        <ul class="ing">${r.ingredients.map((t, i) => isHeading(t) ? `<li class="ing-h">${esc(t.slice(3))}</li>` : `<li><label><input type="checkbox" id="ing-${r.id}-${i}" data-i="${i}" ${p.ing.includes(i) ? "checked" : ""}><span>${esc(t.replace(/^Optional:?\s*/i, ""))}${isOptional(t) ? '<span class="opt">optional</span>' : ""}</span></label></li>`).join("")}</ul>
+        ${r.note ? `<p class="hint">${esc(r.note)}</p>` : ""}
         <p class="hint">Tick things off as you gather them.</p>
       </div>
       <div>
         <div class="sec-h"><h2>Method</h2></div>
         <ol class="steps">${r.method.map((t, i) => `<li><div class="step ${p.steps.includes(i) ? "done" : ""}" data-i="${i}" role="button" tabindex="0" aria-pressed="${p.steps.includes(i)}"><span class="n">${i + 1}</span><span class="txt">${linkify(t, r.id, i)}</span></div></li>`).join("")}</ol>
         <p class="hint">Tap a step to mark it done.</p>
+        ${r.tip ? `<aside class="tip"><h3>${esc(r.tip.title)}</h3><p>${esc(r.tip.text)}</p></aside>` : ""}
       </div>
     </section>`;
   const save = () => { progress[r.id] = p; store.set("progress", progress); };
@@ -374,7 +388,7 @@ function renderRecipe(r) {
   });
   $("#addList").addEventListener("click", () => {
     const have = new Set(shopping.filter(s => s.rid === r.id).map(s => s.text));
-    const add = r.ingredients.filter(t => !isOptional(t) && !have.has(t)).map(text => ({ rid: r.id, text, done: false }));
+    const add = r.ingredients.filter(t => !isOptional(t) && !isHeading(t) && !have.has(t)).map(text => ({ rid: r.id, text, done: false }));
     shopping = [...shopping, ...add]; store.set("shopping", shopping); updateCount();
     toast(add.length ? `Added ${add.length} items to your shopping list` : "Already on your shopping list");
   });
