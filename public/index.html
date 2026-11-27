@@ -3763,6 +3763,22 @@
   let clSub = "opening";
   let clStore = "30";
   let clRows = [];
+  let clPollTimer = null;
+  let clListenersAdded = false;
+
+  // Live-ish sync: quietly re-fetch the current store/day while the Checklist tab is on screen,
+  // so ticks made on another device (phone ↔ desktop) show up within a few seconds. On any
+  // error (incl. a dropped session) we keep what's already shown rather than blanking it.
+  async function refreshChecklistSilent() {
+    if (checklistView.hidden || document.getElementById("clMain").hidden || document.hidden) return;
+    try {
+      const r = await fetch("/api/checklists?date=" + encodeURIComponent(clDate) + "&store=" + encodeURIComponent(clStore), { headers: taskHeaders() });
+      if (!r.ok) return;
+      const p = await r.json();
+      clRows = p.rows || [];
+      renderChecklist();
+    } catch (e) {}
+  }
 
   function clCountItems(k) { return CHECKLISTS[k].groups.reduce((n, g) => n + g.items.length, 0); }
   function clShiftDay(ds, delta) {
@@ -3797,6 +3813,14 @@
     }));
     document.getElementById("clPrev").onclick = () => { clDate = clShiftDay(clDate, -1); loadChecklist(); };
     document.getElementById("clNext").onclick = () => { if (clDate < coToday()) { clDate = clShiftDay(clDate, 1); loadChecklist(); } };
+    // Keep it fresh across devices: poll every 12s while the tab is visible, and refresh the
+    // moment you come back to the page (phone wake / tab focus).
+    if (!clPollTimer) clPollTimer = setInterval(refreshChecklistSilent, 12000);
+    if (!clListenersAdded) {
+      clListenersAdded = true;
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshChecklistSilent(); });
+      window.addEventListener("focus", refreshChecklistSilent);
+    }
     loadChecklist();
   }
   function showClPicker() {
